@@ -128,9 +128,9 @@ PURPLE = (0x44, 0x01, 0x54)
 YELLOW = (0xFD, 0xE7, 0x25)
 
 
-def prepare_model(chkpt_dir, arch='mae_vit_large_patch16', device='cpu'):
+def prepare_model(chkpt_dir, arch='mae_vit_large_patch16', vq_ckpt_dir='.', device='cpu'):
     # build model
-    model = getattr(models_mae, arch)()
+    model = getattr(models_mae, arch)(vq_ckpt_dir)
     # load model
     checkpoint = torch.load(chkpt_dir, map_location='cpu')
     msg = model.load_state_dict(checkpoint['model'], strict=False)

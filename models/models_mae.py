@@ -29,7 +29,7 @@ class MaskedAutoencoderViT(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_chans=3,
                  embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-                 mlp_ratio=4., norm_layer=nn.LayerNorm):
+                 mlp_ratio=4., norm_layer=nn.LayerNorm, vq_ckpt_dir='.'):
         super().__init__()
 
         # --------------------------------------------------------------------------
@@ -44,7 +44,7 @@ class MaskedAutoencoderViT(nn.Module):
             Block(embed_dim, num_heads, mlp_ratio, qkv_bias=True, norm_layer=norm_layer)
             for i in range(depth)])
         self.norm = norm_layer(embed_dim)
-        self.vae = get_vq_model().eval()
+        self.vae = get_vq_model(vq_ckpt_dir=vq_ckpt_dir).eval()
         vocab_size = 1024
 
             # --------------------------------------------------------------------------
@@ -230,35 +230,35 @@ class MaskedAutoencoderViT(nn.Module):
         return loss, pred, mask
 
 
-def mae_vit_small_patch16(**kwargs):
+def mae_vit_small_patch16(vq_ckpt_dir='.', **kwargs):
     model = MaskedAutoencoderViT(
         patch_size=16, embed_dim=384, depth=12, num_heads=12,
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), vq_ckpt_dir=vq_ckpt_dir, **kwargs)
     return model
 
 
-def mae_vit_base_patch16_dec512d8b(**kwargs):
+def mae_vit_base_patch16_dec512d8b(vq_ckpt_dir='.', **kwargs):
     model = MaskedAutoencoderViT(
         patch_size=16, embed_dim=768, depth=12, num_heads=12,
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), vq_ckpt_dir=vq_ckpt_dir, **kwargs)
     return model
 
 
-def mae_vit_large_patch16_dec512d8b(**kwargs):
+def mae_vit_large_patch16_dec512d8b(vq_ckpt_dir='.', **kwargs):
     model = MaskedAutoencoderViT(
         patch_size=16, embed_dim=1024, depth=24, num_heads=16,
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), vq_ckpt_dir=vq_ckpt_dir, **kwargs)
     return model
 
 
-def mae_vit_huge_patch14_dec512d8b(**kwargs):
+def mae_vit_huge_patch14_dec512d8b(vq_ckpt_dir='.', **kwargs):
     model = MaskedAutoencoderViT(
         patch_size=14, embed_dim=1280, depth=32, num_heads=16,
         decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+        mlp_ratio=4, norm_layer=partial(nn.LayerNorm, eps=1e-6), vq_ckpt_dir=vq_ckpt_dir, **kwargs)
     return model
 
 

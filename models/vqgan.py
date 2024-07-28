@@ -10,7 +10,6 @@ import torch
 from omegaconf import OmegaConf
 import os
 from viz_utils import imagenet_std, imagenet_mean
-cwd = '/data/luotianci/TO_JPSX/VisualICL/weights/vqgan'
 
 ## Code borrowed from VQGAN
 
@@ -1286,11 +1285,10 @@ class VQModel(pl.LightningModule):
         return x.float()
 
 
-def get_vq_model(config_path=os.path.join(cwd, 'model.yaml'),
-                 ckpt_path=os.path.join(cwd, "last.ckpt")):
-    config = OmegaConf.load(config_path)
+def get_vq_model(vq_ckpt_dir='.'):
+    config = OmegaConf.load(os.path.join(vq_ckpt_dir, 'model.yaml'))
     model = VQModel(**config.model.params)
-    sd = torch.load(ckpt_path, map_location="cpu")["state_dict"]
+    sd = torch.load(os.path.join(vq_ckpt_dir, "last.ckpt"), map_location="cpu")["state_dict"]
     missing, _ = model.load_state_dict(sd, strict=False)
     print("Missing VQGAN keys:", missing)
     return model.eval()

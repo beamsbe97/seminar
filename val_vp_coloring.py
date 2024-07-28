@@ -28,6 +28,7 @@ def get_args():
     parser.add_argument('--t', default=[0, 0, 0], type=float, nargs='+')
     parser.add_argument('--task', default='coloring', choices=['segmentation', 'detection','coloring'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
+    parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
     parser.add_argument('--dataset_type', default='image_net',
                         choices=['image_net'])
     parser.add_argument('--simidx', default=1, type=int)
@@ -102,7 +103,7 @@ def test_for_generate_results(args):
     print("load data over")
 
     # MAE_VQGAN model
-    vqgan = prepare_model(args.ckpt, arch=args.mae_model)
+    vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
 
     if args.vp_model == 'prompt':
         print('load prompt generator')

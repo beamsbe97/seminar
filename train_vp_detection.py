@@ -35,6 +35,7 @@ def get_args():
     parser.add_argument('--task', default='detection', choices=['segmentation', 'detection'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
     parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
+    parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
     parser.add_argument('--dataset_type', default='pascal_det',
                         choices=['pascal', 'pascal_det'])
     parser.add_argument('--simidx', default=1, type=int)
@@ -113,7 +114,7 @@ def train(args):
     print("load data over")
 
     # MAE_VQGAN model
-    vqgan = prepare_model(args.ckpt, arch=args.mae_model)
+    vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
     print(args.device)
 
     if args.vp_model == 'Prompt':

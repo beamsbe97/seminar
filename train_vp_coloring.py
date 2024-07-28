@@ -51,6 +51,7 @@ def get_args():
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
     parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
+    parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
 
     # train settings
     parser.add_argument("--batch-size", type=int, default=32,
@@ -122,7 +123,7 @@ def train(args):
     print("load data over")
 
     # MAE_VQGAN model
-    vqgan = prepare_model(args.ckpt, arch=args.mae_model)
+    vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
     print(args.device)
 
     if args.vp_model == 'Prompt':
