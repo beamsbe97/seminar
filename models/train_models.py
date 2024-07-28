@@ -85,7 +85,7 @@ class PGVP(nn.Module):
         self.vqgan = vqgan
         self.arr = arr
         # print('????????',args.sigma)
-        self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma)
+        self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma,device=args.device)
         self.transform224 = ResizeTransform((224, 224))
         self.transform111 = ResizeTransform((111, 111))
         self.mode = mode

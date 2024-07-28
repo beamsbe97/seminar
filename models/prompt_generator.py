@@ -22,48 +22,56 @@ def gaussian_weight_matrix(size, center, sigma=1.0):
     kernel = torch.exp(-((xx - center[0])**2 + (yy - center[1])**2) / (2 * sigma**2))
     return kernel / kernel.sum()
 
-def calculate_attention(key, value1, value2, query, dropout, tsigma=1.0):
-    B, N, _, _, D = key.size()
-    _, h, w, _ = query.size()
+class Matrix():
+    def __init__(self,sigma,device):
+        self.gw = [[] for i in range(7)]
+        for i in range(7):
+            for j in range(7):
+                self.gw[i].append(gaussian_weight_matrix(7, center=(i, j), sigma=sigma).to(device=device))
+    def calculate_attention(self,key, value1, value2, query, dropout, tsigma=1.0):
+        B, N, _, _, D = key.size()
+        _, h, w, _ = query.size()
 
-    # Reshape query to 49 x B x D
-    query_reshaped = query.view(B, -1, D).permute(1, 0, 2)
+        # Reshape query to 49 x B x D
+        query_reshaped = query.view(B, -1, D).permute(1, 0, 2)
 
-    # Initialize the output tensor
-    output1 = torch.zeros(B, h*w, D).to(query.device)
-    output2 = torch.zeros(B, h*w, D).to(query.device)
+        list1 = []
+        list2 = []
 
-    for i in range(h * w):
-        # Calculate the position of the current patch
-        patch_y, patch_x = divmod(i, w)
-        
-        # Current query vector
-        q = query_reshaped[i]  # B x D
+        for i in range(h * w):
+            # Calculate the position of the current patch
+            patch_y, patch_x = divmod(i, w)
+            
+            # Current query vector
+            q = query_reshaped[i]  # B x D
 
-        # Compute similarity scores between query and key
-        score = torch.einsum('bd,bnwhd->bnwh', q, key)  # B x N x 7 x 7
+            # Compute similarity scores between query and key
+            score = torch.einsum('bd,bnwhd->bnwh', q, key)  # B x N x 7 x 7
 
-        # Create a Gaussian weight matrix centered at the current patch position
-        gaussian_matrix = gaussian_weight_matrix(7, center=(patch_y, patch_x), sigma=tsigma).to(query.device)
-        
-        # Apply Gaussian weighting
-        score = score * gaussian_matrix
+            # Create a Gaussian weight matrix centered at the current patch position
+            gaussian_matrix = self.gw[patch_y][patch_x]
+            
+            # Apply Gaussian weighting
+            score = score * gaussian_matrix
 
-        # Reshape and apply softmax
-        attn_weight = F.softmax(score.view(B, -1), dim=-1).view(B, N, 7, 7)
-        # attn_weight = dropout(attn_weight)
+            # Reshape and apply softmax
+            attn_weight = F.softmax(score.view(B, -1), dim=-1).view(B, N, 7, 7)
+            # attn_weight = dropout(attn_weight)
 
-        # Compute weighted sum
-        attn_output1 = torch.einsum('bnwh,bnwhd->bd', attn_weight, value1)
-        attn_output2 = torch.einsum('bnwh,bnwhd->bd', attn_weight, value2)
-        # Collect the result
-        output1[:, i, :] = attn_output1
-        output2[:, i, :] = attn_output2
+            # Compute weighted sum
+            attn_output1 = torch.einsum('bnwh,bnwhd->bd', attn_weight, value1)
+            attn_output2 = torch.einsum('bnwh,bnwhd->bd', attn_weight, value2)
+            # Collect the result
+            list1.append(attn_output1)
+            list2.append(attn_output2)
 
-    return output1, output2
+        output1 = torch.stack(list1,dim=1)
+        output2 = torch.stack(list2,dim=1)
+
+        return output1, output2
 
 class PromptGenerator(nn.Module):
-    def __init__(self,dropout = 0,sigma = 1.0):
+    def __init__(self,dropout = 0,sigma = 1.0,device='cpu'):
         super().__init__()
         #self.CrossAttention_S = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout,num_heads = 8,batch_first=True)
         self.SelfAttention_Q = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout, num_heads = 8,batch_first=True)
@@ -75,6 +83,7 @@ class PromptGenerator(nn.Module):
         self.Linearv1 = nn.Linear(1024,1024)
         self.Linearv2 = nn.Linear(1024,1024)
         self.dropout = nn.Dropout(0.25)
+        self.Matrix = Matrix(sigma,device=device)
         self.sigma = sigma
         self.initialize_weights()
 
@@ -140,7 +149,7 @@ class PromptGenerator(nn.Module):
         #attn_out2 = (attn_weight @ (self.Linear(support_features_mask)))          #[B*49,1,1024]
 
 
-        attn_out1,attn_out2 = calculate_attention(self.Lineark(support_features_img),self.Linearv1(support_features_img),self.Linearv2(support_features_mask),self.Linearq(query_features_img),self.dropout,tsigma=self.sigma)
+        attn_out1,attn_out2 = self.Matrix.calculate_attention(self.Lineark(support_features_img),self.Linearv1(support_features_img),self.Linearv2(support_features_mask),self.Linearq(query_features_img),self.dropout,tsigma=self.sigma)
 
         ##after attention process the answer
 
