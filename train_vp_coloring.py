@@ -202,12 +202,12 @@ def train(args):
             for index in range(len(original_image_list)):
                 generated_result = generated_result_list[index]
                 original_image = original_image_list[index]
-                if index == 0:
-                    image = TF.to_pil_image(generated_result_list[0])
-                     # # 保存图像
-                    image.save("result.jpg")
-                    image = TF.to_pil_image((original_image))
-                    image.save("original_image.jpg")
+                # if index == 0:
+                #     image = TF.to_pil_image(generated_result_list[0])
+                #      # # 保存图像
+                #     image.save("result.jpg")
+                #     image = TF.to_pil_image((original_image))
+                #     image.save("original_image.jpg")
                 current_metric = calculate_mse(original_image, generated_result)
                 
                 for i, j in current_metric.items():
@@ -261,15 +261,15 @@ def train(args):
                     if args.save_examples:
                         Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                             examples_save_path + f'generated_image_{image_number}.png')
-                    if index == 0:
-                        image = TF.to_pil_image(generated_result_list[0])
+                    # if index == 0:
+                    #     image = TF.to_pil_image(generated_result_list[0])
 
-                        # # 保存图像
-                        image.save("result.jpg")
-                    #    print(generated_result.shape)
-                        image = TF.to_pil_image((original_image))
-                        # # 保存图像
-                        image.save("original_image.jpg")
+                    #     # # 保存图像
+                    #     image.save("result.jpg")
+                    # #    print(generated_result.shape)
+                    #     image = TF.to_pil_image((original_image))
+                    #     # # 保存图像
+                    #     image.save("original_image.jpg")
 
                     current_metric = calculate_mse(original_image, generated_result)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:

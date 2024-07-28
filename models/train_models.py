@@ -7,7 +7,6 @@ from models.prompt_generator import PromptGenerator
 from PIL import Image
 import torchvision.transforms.functional as TF
 
-
 class Scheduler(object):
     def __init__(self, name, num_epoch):
         self.name = name
@@ -90,7 +89,9 @@ class PGVP(nn.Module):
         self.transform224 = ResizeTransform((224, 224))
         self.transform111 = ResizeTransform((111, 111))
         self.mode = mode
-
+        self.register_buffer('imagenet_mean',torch.tensor([0.485, 0.456, 0.406])) 
+        self.register_buffer('imagenet_std',torch.tensor([0.229, 0.224, 0.225]))
+        
     def create_grid_from_images(self, prompt_img, support_mask, query_img, query_mask):
         canvas = torch.ones((prompt_img.shape[1], 2 * prompt_img.shape[2] + 2 * self.padding,
                              2 * prompt_img.shape[3] + 2 * self.padding))
@@ -186,13 +187,10 @@ class PGVP(nn.Module):
         return y_pred, mask
 
     def forward(self, support_img, support_mask, query_img, query_mask, grid, query_features, support_features):
-        imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).to(self.args.device) 
-        imagenet_std = torch.tensor([0.229, 0.224, 0.225]).to(self.args.device)
-
         canvas_label = grid.clone()
         canvas_return_label = grid.clone()
         if self.args.dataset_type != 'pascal_det':
-            canvas_return_label = (canvas_return_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
+            canvas_return_label = (canvas_return_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
         # print("1   ",canvas_return_label.shape)
         # print(self.vqgan.patch_embed(canvas_return_label[0]) + self.vqgan.pos_embed[:,1:,:])
         # print(self.vqgan.patch_embed(canvas_return_label[0]).shape)
@@ -210,16 +208,16 @@ class PGVP(nn.Module):
         grid = grid[0]
         
         y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
-        canvas_label = canvas_label.float().to(self.device)
+        # canvas_label = canvas_label.float().to(self.device)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if self.args.dataset_type != 'pascal_det':
-            canvas_label = (canvas_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
+            canvas_label = (canvas_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
         N = canvas_label.shape[0]
         loss_ce = 0
-        image = TF.to_pil_image(canvas_label[0][0])
+        # image = TF.to_pil_image(canvas_label[0][0])
 
         # 保存图像
-        image.save("canvas_label.png")
+        # image.save("canvas_label.png")
         for sub_label in canvas_label:
             loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
         loss_ce /= N

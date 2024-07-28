@@ -199,14 +199,14 @@ def train(args):
                 generated_result = generated_result_list[index]
                 if args.task == 'detection':
                     generated_result = to_rectangle(generated_result)
-                if index == 0:
-                    image = TF.to_pil_image(generated_result_list[0])
-                     # # 保存图像
-                    image.save("result.jpg")
-                    image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                    image.save("final_result.jpg")
-                    image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                    image.save("original_image.jpg")
+                # if index == 0:
+                #     image = TF.to_pil_image(generated_result_list[0])
+                #      # # 保存图像
+                #     image.save("result.jpg")
+                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                #     image.save("final_result.jpg")
+                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                #     image.save("original_image.jpg")
                 current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                 
                 for i, j in current_metric.items():
@@ -266,18 +266,18 @@ def train(args):
                     if args.save_examples:
                         Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                             examples_save_path + f'generated_image_{image_number}.png')
-                    if index == 0:
-                        image = TF.to_pil_image(generated_result_list[0])
+                    # if index == 0:
+                    #     image = TF.to_pil_image(generated_result_list[0])
 
-                        # # 保存图像
-                        image.save("result.jpg")
-                    #    print(generated_result.shape)
-                        image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                        # # 保存图像
-                        image.save("final_result.jpg")
-                        image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                        # # 保存图像
-                        image.save("original_image.jpg")
+                    #     # # 保存图像
+                    #     image.save("result.jpg")
+                    # #    print(generated_result.shape)
+                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                    #     # # 保存图像
+                    #     image.save("final_result.jpg")
+                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                    #     # # 保存图像
+                    #     image.save("original_image.jpg")
 
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
