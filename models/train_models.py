@@ -191,50 +191,25 @@ class PGVP(nn.Module):
         canvas_return_label = grid.clone()
         if self.args.dataset_type != 'pascal_det':
             canvas_return_label = (canvas_return_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
-        # print("1   ",canvas_return_label.shape)
-        # print(self.vqgan.patch_embed(canvas_return_label[0]) + self.vqgan.pos_embed[:,1:,:])
-        # print(self.vqgan.patch_embed(canvas_return_label[0]).shape)
+
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
-        # print("2   ",support_features[0])
-        # print("4   ",query_features[0])
+
         canvas_pred_tokens = self.PromptGenerator(support_features,query_features)
-        # print(self.vqgan.patch_embed(canvas_return_label).shape)
-        # canvas_pred_tokens = self.vqgan.patch_embed(canvas_return_label) + self.vqgan.pos_embed[:,1:,:]
-        # print("3   ",canvas_pred_tokens[0])
-        # print(canvas_pred_tokens[0].shape)
-        # assert False
+
         grid = grid.permute(1,0,2,3,4)
         grid = grid[0]
         
         y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
-        # canvas_label = canvas_label.float().to(self.device)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if self.args.dataset_type != 'pascal_det':
             canvas_label = (canvas_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
         N = canvas_label.shape[0]
         loss_ce = 0
-        # image = TF.to_pil_image(canvas_label[0][0])
 
-        # 保存图像
-        # image.save("canvas_label.png")
         for sub_label in canvas_label:
             loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
         loss_ce /= N
 
-        # imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).to('cuda:2') 
-        # imagenet_std = torch.tensor([0.229, 0.224, 0.225]).to('cuda:2')
-        # original_image_list, generated_result_list = _generate_result_for_canvas(self.args, self.vqgan,
-        #                                                                             (canvas_pred - imagenet_mean[:, None, None]) / imagenet_std[:, None, None], (canvas_return_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None],
-        #                                                                             self.args.arr)
-        # loss_mse = 0
 
-        # for index in range(len(original_image_list)):
-        #     original_image = round_image(original_image_list[index], [WHITE, BLACK])
-            
-        #     generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=self.args.t)
-        #     current_metric = calculate_metric(self.args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-        #     loss_mse += (100 - (current_metric['iou'] * 100))/10
-        # loss_mse /= len(original_image_list)
-      #  print(loss_mse)
         return loss_ce, canvas_pred_tokens, canvas_return_label

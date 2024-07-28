@@ -122,8 +122,8 @@ def train(args):
     dataloaders = {}
 
     # set batch size to 1/2 on val set to adapt GPU memory.修改了
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))

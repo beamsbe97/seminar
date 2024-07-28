@@ -105,8 +105,8 @@ def train(args):
     print('length of val dataset: ', len(val_dataset))
 
     dataloaders = {}
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size // 2, shuffle=False, num_workers=4)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size // 2, shuffle=False)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))

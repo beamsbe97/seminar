@@ -2,6 +2,7 @@ import torch.utils.data as data
 import sys
 import os
 # print(sys.path)
+import argparse
 
 relative_path = './evaluate_detection'
 abs_path = os.path.abspath(relative_path)
@@ -73,10 +74,10 @@ class CanvasDataset4Val(data.Dataset):
         self.images_top50 = self.get_top50_images()
         self.img_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_query_all_detection/detection_eval_query.h5df'
         self.img_feature_for_train_path = os.path.join(pascal_path, self.img_feature_for_train_path)
-        
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_eval_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
+        self.cache = {}
 
     def get_top50_images(self):
         with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_val_all_detection/new_top_50-similarity.json') as f:
@@ -87,6 +88,11 @@ class CanvasDataset4Val(data.Dataset):
         return len(self.val_ds)
     
     def __getitem__(self, idx):
+        if idx in self.cache and self.cache[idx]['valid']:
+            # print("Cache hit for index:", idx)
+            return self.cache[idx]['batch']
+        # else:
+        #     print("Cache miss for index:", idx)
         grids = torch.tensor([]).to(self.args.device)
         support_imgs = torch.tensor([]).to(self.args.device)
         support_masks = torch.tensor([]).to(self.args.device)
@@ -190,6 +196,8 @@ class CanvasDataset4Val(data.Dataset):
             'support_features': support_features
         ##end my code
         }
+        self.cache[idx] = {'valid': True, 'batch': batch}
+
         return batch
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:
@@ -221,6 +229,7 @@ class CanvasDataset4Train(data.Dataset):
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_train_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
+        self.cache = {}
     def get_top50_images(self):
         with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_train_all_detection/new_top_50-similarity.json') as f:
             images_top50 = json.load(f)
@@ -239,6 +248,11 @@ class CanvasDataset4Train(data.Dataset):
         return query_img_feature,support_feature
     
     def __getitem__(self, idx):
+        if idx in self.cache and self.cache[idx]['valid']:
+            # print("Cache hit for index:", idx)
+            return self.cache[idx]['batch']
+        # else:
+        #     print("Cache miss for index:", idx)
         grids = torch.tensor([]).to(self.args.device)
         support_imgs = torch.tensor([]).to(self.args.device)
         support_masks = torch.tensor([]).to(self.args.device)
@@ -341,12 +355,25 @@ class CanvasDataset4Train(data.Dataset):
             'support_features': support_features
         ##end my code
         }
+        # print("hit?",1 if idx in self.cache else 0)
+        self.cache[idx] = {'valid': True, 'batch': batch}
+        # print("idx",idx)
+        # print("hit?",1 if idx in self.cache else 0)
         return batch
+
+# def get_args():
+#     parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)
+
+#     return parser
 
 # if __name__ == "__main__":
 #     # model = prepare_model('/shared/amir/Deployment/arxiv_mae/logs_dir/pretrain_small_arxiv2/checkpoint-799.pth',
 #     #                       arch='mae_vit_small_patch16')
+#     args = get_args()
 
-#     canvas_ds = CanvasDataset4Val()
+#     args = args.parse_args()
+#     args.device = 'cpu'
+#     canvas_ds = CanvasDataset4Val('VisualICL/pascal-5i',args=args)
 
+#     canvas = canvas_ds[0]
 #     canvas = canvas_ds[0]
