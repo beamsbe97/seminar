@@ -10,7 +10,7 @@ import torch
 from omegaconf import OmegaConf
 import os
 from viz_utils import imagenet_std, imagenet_mean
-cwd = '/mnt/dolphinfs/ssd_pool/docker/user/hadoop-hldy-nlp/wangjinpeng08/tianci/VisualICL/weights/vqgan'
+cwd = '/data/luotianci/TO_JPSX/VisualICL/weights/vqgan'
 
 ## Code borrowed from VQGAN
 
