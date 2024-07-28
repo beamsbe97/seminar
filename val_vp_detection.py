@@ -191,7 +191,8 @@ def test_for_generate_results(args):
 
 
 if __name__ == '__main__':
-    mp.set_start_method('spawn')
+    if mp.get_start_method(allow_none=True) != 'spawn':
+        mp.set_start_method('spawn')
     args = get_args()
 
     args = args.parse_args()
