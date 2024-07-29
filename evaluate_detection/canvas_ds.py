@@ -93,11 +93,11 @@ class CanvasDataset4Val(data.Dataset):
             return self.cache[idx]['batch']
         # else:
         #     print("Cache miss for index:", idx)
-        grids = torch.tensor([]).to(self.args.device)
-        support_imgs = torch.tensor([]).to(self.args.device)
-        support_masks = torch.tensor([]).to(self.args.device)
-        query_img_features = torch.tensor([]).to(self.args.device)
-        support_features = torch.tensor([]).to(self.args.device)
+        grids = torch.tensor([]) 
+        support_imgs = torch.tensor([]) 
+        support_masks = torch.tensor([]) 
+        query_img_features = torch.tensor([]) 
+        support_features = torch.tensor([]) 
         for sim_idx in range(self.simidx):
             if sim_idx == 0:
                 query_image, query_target = self.val_ds[idx]
@@ -253,11 +253,11 @@ class CanvasDataset4Train(data.Dataset):
             return self.cache[idx]['batch']
         # else:
         #     print("Cache miss for index:", idx)
-        grids = torch.tensor([]).to(self.args.device)
-        support_imgs = torch.tensor([]).to(self.args.device)
-        support_masks = torch.tensor([]).to(self.args.device)
-        query_img_features = torch.tensor([]).to(self.args.device)
-        support_features = torch.tensor([]).to(self.args.device)
+        grids = torch.tensor([]) 
+        support_imgs = torch.tensor([]) 
+        support_masks = torch.tensor([]) 
+        query_img_features = torch.tensor([]) 
+        support_features = torch.tensor([]) 
         for sim_idx in range(self.simidx):
             if sim_idx == 0:
                 query_image, query_target = self.val_ds[idx]

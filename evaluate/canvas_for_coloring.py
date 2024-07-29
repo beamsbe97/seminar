@@ -110,11 +110,11 @@ class DatasetColorization(Dataset):
     def __getitem__(self, idx):
 
         query = self.ds[idx]
-        grids = torch.tensor([]).to(self.to_device)
-        support_imgs = torch.tensor([]).to(self.to_device)
-        support_masks = torch.tensor([]).to(self.to_device)
-        query_img_features = torch.tensor([]).to(self.to_device)
-        support_features = torch.tensor([]).to(self.to_device)
+        grids = torch.tensor([]) 
+        support_imgs = torch.tensor([]) 
+        support_masks = torch.tensor([]) 
+        query_img_features = torch.tensor([]) 
+        support_features = torch.tensor([]) 
         # import pdb;pdb.set_trace()
 
         # grid_stack = torch.tensor([]).cuda()

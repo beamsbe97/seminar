@@ -202,10 +202,10 @@ class DatasetPASCAL(Dataset):
 
     def __getitem__(self, idx):
         idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
-        grid_stack = torch.tensor([]).to(self.args.device)
+        grid_stack = torch.tensor([]) 
         #my code
-        query_img_features = torch.tensor([]).to(self.args.device)
-        support_features = torch.tensor([]).to(self.args.device)
+        query_img_features = torch.tensor([]) 
+        support_features = torch.tensor([]) 
         #end my code
         for sim_idx in range(self.simidx):
             if sim_idx == 0:
