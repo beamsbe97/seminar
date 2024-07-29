@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# data_root=/mnt/dolphinfs/ssd_pool/docker/user/hadoop-hldy-nlp/wangjinpeng08/tianci/VisualICL
 data_root=/mnt/dolphinfs/ssd_pool/docker/user/hadoop-hldy-nlp/wangjinpeng08/tianci/VisualICL
 
 # Define the commands to run in parallel
