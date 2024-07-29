@@ -11,7 +11,7 @@
 Transforms and data augmentation for both image + bbox.
 """
 import random
-import torchvision.transforms._functional_tensor as TF
+# import torchvision.transforms._functional_tensor as TF
 
 import PIL
 import torch
