@@ -182,6 +182,7 @@ def train(args):
 
             scaled_loss.backward()
             scaler.step(optimizer)
+            torch.nn.utils.clip_grad_norm_(VP.PromptGenerator.parameters(), max_norm=1.0)
             scaler.update()
 
             epoch_loss += loss.detach()
