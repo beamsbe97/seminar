@@ -23,32 +23,19 @@ terminate() {
 # Trap SIGINT (Ctrl+C) signal to terminate background processes
 trap terminate SIGINT
 
-# Run the commands in parallel
-$cmd1 &
-pid1=$!
-$cmd2 &
-pid2=$!
-$cmd3 &
-pid3=$!
-$cmd4 &
-pid4=$!
-$cmd5 &
-pid5=$!
-$cmd6 &
-pid6=$!
-$cmd7 &
-pid7=$!
-$cmd8 &
-pid8=$!
+pids=()
+
+for cmd in "${cmds[@]}"; do
+    echo "Running: $cmd"
+    $cmd &
+    pids+=($!)
+    sleep 600  # wait for 10 minutes before starting the next command
+done
 
 # Wait for all background tasks to complete
-wait $pid1
-wait $pid2
-wait $pid3
-wait $pid4
-wait $pid5
-wait $pid6
-wait $pid7
-wait $pid8
+for pid in "${pids[@]}"; do
+    wait $pid
+done
+
 
 echo "All tasks completed."
