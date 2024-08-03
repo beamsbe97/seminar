@@ -54,7 +54,7 @@ def get_annotated_image(img, boxes, border_width=3, mode='draw', bgcolor='white'
     return image_copy
 
 
-class CanvasDataset4Val(data.Dataset):
+class RandomCanvasDataset4Val(data.Dataset):
     def __init__(self, pascal_path='pascal-5i',args = None, years=("2012",),simidx = 1, random=False, **kwargs):
         self.train_ds = VOCDetection4Val(pascal_path, years, image_sets=['train'], transforms=None,
                                          keep_single_objs_only=1, filter_by_mask_size=1)
@@ -71,18 +71,18 @@ class CanvasDataset4Val(data.Dataset):
         self.transforms = make_transforms('val')
         self.random = random
         self.simidx = simidx
-        self.images_top50 = self.get_top50_images()
+        # self.images_top50 = self.get_top50_images()
         self.img_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_query_all_detection/detection_eval_query.h5df'
         self.img_feature_for_train_path = os.path.join(pascal_path, self.img_feature_for_train_path)
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_eval_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
-        self.cache = {}
+        # self.cache = {}
 
-    def get_top50_images(self):
-        with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_val_all_detection/new_top_50-similarity.json') as f:
-            images_top50 = json.load(f)
-        return images_top50
+    # def get_top50_images(self):
+    #     with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_val_all_detection/new_top_50-similarity.json') as f:
+    #         images_top50 = json.load(f)
+    #     return images_top50
     
     def __len__(self):
         return len(self.val_ds)
@@ -108,10 +108,13 @@ class CanvasDataset4Val(data.Dataset):
                 # print(query_image_name)
                 label = query_target['labels'].numpy()[0]
                 # print(self.images_top50[query_image_name][sim_idx].split(' '))
-                support_image_name = self.images_top50[query_image_name][sim_idx]
-            
+                # support_image_name = self.images_top50[query_image_name][sim_idx]
 
-                support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
+                idxx = torch.randint(0, len(self.train_ds), (1,)).item()
+                support_image, support_target = self.train_ds[idxx]
+                support_image_name = self.train_ds.images[idxx].split('/')[-1][:-4]
+
+                # support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
                 support_label = support_target['labels'].numpy()[0]
                 # print(query_image_name,support_image_name)
                 boxes = support_target['boxes'][torch.where(support_target['labels'] == support_label)[0]]
@@ -140,9 +143,9 @@ class CanvasDataset4Val(data.Dataset):
                 grids = grid.unsqueeze(0)
 
             else:
-                support_image_name = self.images_top50[query_image_name][sim_idx]
-
-                support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
+                idxx = torch.randint(0, len(self.train_ds), (1,)).item()
+                support_image, support_target = self.train_ds[idxx]
+                support_image_name = self.train_ds.images[idxx].split('/')[-1][:-4]                
                 support_label = support_target['labels'].numpy()[0]
                 # print(query_image_name,support_image_name)
                 boxes = support_target['boxes'][torch.where(support_target['labels'] == support_label)[0]]
@@ -208,7 +211,7 @@ class CanvasDataset4Val(data.Dataset):
         #print(support_img_feature-support_mask_feature)
         return query_img_feature,support_feature
 
-class CanvasDataset4Train(data.Dataset):
+class RandomCanvasDataset4Train(data.Dataset):
     def __init__(self, pascal_path='pascal-5i', args = None,years=("2012",), simidx = 1, random=False, **kwargs):
         self.train_ds = VOCDetection4Train(pascal_path, years, image_sets=['train'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
         self.val_ds = VOCDetection4Train(pascal_path, years, image_sets=['val'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
@@ -223,17 +226,17 @@ class CanvasDataset4Train(data.Dataset):
         self.transforms = make_transforms('val')
         self.random = random
         self.simidx = simidx
-        self.images_top50 = self.get_top50_images()
+        # self.images_top50 = self.get_top50_images()
         self.img_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_query_all_detection/detection_train_query.h5df'
         self.img_feature_for_train_path = os.path.join(pascal_path, self.img_feature_for_train_path)
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_train_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
-        self.cache = {}
-    def get_top50_images(self):
-        with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_train_all_detection/new_top_50-similarity.json') as f:
-            images_top50 = json.load(f)
-        return images_top50
+        # self.cache = {}
+    # def get_top50_images(self):
+    #     with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_train_all_detection/new_top_50-similarity.json') as f:
+    #         images_top50 = json.load(f)
+    #     return images_top50
     
     def __len__(self):
         return len(self.val_ds)
@@ -267,10 +270,9 @@ class CanvasDataset4Train(data.Dataset):
                 # print(query_image_name)
                 label = query_target['labels'].numpy()[0]
                 # print(self.images_top50[query_image_name][sim_idx].split(' '))
-                support_image_name = self.images_top50[query_image_name][sim_idx]
-            
-
-                support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
+                idxx = torch.randint(0, len(self.train_ds), (1,)).item()
+                support_image, support_target = self.train_ds[idxx]
+                support_image_name = self.train_ds.images[idxx].split('/')[-1][:-4]
                 support_label = support_target['labels'].numpy()[0]
                 # print(query_image_name,support_image_name)
                 boxes = support_target['boxes'][torch.where(support_target['labels'] == support_label)[0]]
@@ -299,9 +301,9 @@ class CanvasDataset4Train(data.Dataset):
                 grids = grid.unsqueeze(0)
 
             else:
-                support_image_name = self.images_top50[query_image_name][sim_idx]
-
-                support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
+                idxx = torch.randint(0, len(self.train_ds), (1,)).item()
+                support_image, support_target = self.train_ds[idxx]
+                support_image_name = self.train_ds.images[idxx].split('/')[-1][:-4]
                 support_label = support_target['labels'].numpy()[0]
                 # print(query_image_name,support_image_name)
                 boxes = support_target['boxes'][torch.where(support_target['labels'] == support_label)[0]]

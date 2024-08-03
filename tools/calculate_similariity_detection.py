@@ -13,7 +13,7 @@ source_split = sys.argv[2]
 print(f"Processing {features_name} ...")
 sys.stdout.flush()
 
-source_features_dir = f"./pascal-5i/VOC2012/{features_name}_{source_split}_all_detection"
+source_features_dir = f"./VisualICL/pascal-5i/VOC2012/{features_name}_{source_split}_all_detection"
 target_features_dir = source_features_dir
 
 print(source_features_dir)

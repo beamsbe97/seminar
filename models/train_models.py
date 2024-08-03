@@ -195,17 +195,22 @@ class PGVP(nn.Module):
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
 
+        # print("support_features min:", support_features.min().item(), "support_features max:", support_features.max().item())        
+        # print("query_features min:", query_features.min().item(), "query_features max:", query_features.max().item())        
+
+
         canvas_pred_tokens = self.PromptGenerator(support_features,query_features)
 
         grid = grid.permute(1,0,2,3,4)
         grid = grid[0]
-        
+        # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
         y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if self.args.dataset_type != 'pascal_det':
             canvas_label = (canvas_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
         N = canvas_label.shape[0]
         loss_ce = 0
+        # print("y_pred min:", y_pred.min().item(), "y_pred max:", y_pred.max().item())
 
         for sub_label in canvas_label:
             loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)

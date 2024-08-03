@@ -37,14 +37,17 @@ class Matrix():
 
         list1 = []
         list2 = []
-
+        key = key.to(torch.float32)
+            
         for i in range(h * w):
             # Calculate the position of the current patch
             patch_y, patch_x = divmod(i, w)
             
             # Current query vector
             q = query_reshaped[i]  # B x D
-
+            # print("q min:", q.min().item(), "q max:", q.max().item())        
+            # print("key min:", key.min().item(), "key max:", key.max().item())        
+            q = q.to(torch.float32)
             # Compute similarity scores between query and key
             score = torch.einsum('bd,bnwhd->bnwh', q, key)  # B x N x 7 x 7
 
@@ -53,10 +56,11 @@ class Matrix():
             
             # Apply Gaussian weighting
             score = score * gaussian_matrix
-
+            # print("score min:", score.min().item(), "score max:", score.max().item())        
             # Reshape and apply softmax
             attn_weight = F.softmax(score.view(B, -1), dim=-1).view(B, N, 7, 7)
             # attn_weight = dropout(attn_weight)
+            # print("attn_weight min:", attn_weight.min().item(), "attn_weight max:", attn_weight.max().item())        
 
             # Compute weighted sum
             attn_output1 = torch.einsum('bnwh,bnwhd->bd', attn_weight, value1)
@@ -142,6 +146,8 @@ class PromptGenerator(nn.Module):
         support_features_mask = support_features_mask.reshape(batchsize,N,7,7,1024)
         # support_features_img = support_features_img.permute(0,2,1,3).reshape(batchsize*49,N,1024)
         # support_features_mask = support_features_mask.permute(0,2,1,3).reshape(batchsize*49,N,1024)
+        # print("support_features min:", support_features.min().item(), "support_features max:", support_features.max().item())        
+        # print("query_features_img min:", query_features_img.min().item(), "query_features_img max:", query_features_img.max().item())        
 
         ## update this shape matching
 
@@ -152,6 +158,8 @@ class PromptGenerator(nn.Module):
         attn_out1,attn_out2 = self.Matrix.calculate_attention(self.Lineark(support_features_img),self.Linearv1(support_features_img),self.Linearv2(support_features_mask),self.Linearq(query_features_img),self.dropout,tsigma=self.sigma)
 
         ##after attention process the answer
+        # print("attn_out1 min:", attn_out1.min().item(), "attn_out1 max:", attn_out1.max().item())        
+        # print("attn_out2 min:", attn_out2.min().item(), "attn_out2 max:", attn_out2.max().item())        
 
         attn_out1 = attn_out1.reshape(batchsize,7,7,1024)
         attn_out2 = attn_out2.reshape(batchsize,7,7,1024)

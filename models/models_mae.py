@@ -215,7 +215,15 @@ class MaskedAutoencoderViT(nn.Module):
         # print("target  ",target)
         # print(pred.shape)
         # print(target.shape)
-        loss = nn.CrossEntropyLoss(reduction='none')(input=pred.permute(0, 2, 1), target=target)
+        # print("pred min:", pred.min().item(), "pred max:", pred.max().item())
+        pred = pred.to(torch.float32)
+        # print("pred min:", pred.min().item(), "pred max:", pred.max().item())
+        # print(target.shape)
+        log_softmax = nn.LogSoftmax(dim=2)
+        nll_loss = nn.NLLLoss(reduction='none')
+        pred_log_softmax = log_softmax(pred)
+
+        loss = nll_loss(pred_log_softmax.permute(0, 2, 1), target)
         # print("loss  ",loss)
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed patches
         # print("loss ",loss)
