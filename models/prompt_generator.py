@@ -37,7 +37,7 @@ class Matrix():
 
         list1 = []
         list2 = []
-        key = key.to(torch.float32)
+        key = key.to(torch.float64)
             
         for i in range(h * w):
             # Calculate the position of the current patch
@@ -47,9 +47,10 @@ class Matrix():
             q = query_reshaped[i]  # B x D
             # print("q min:", q.min().item(), "q max:", q.max().item())        
             # print("key min:", key.min().item(), "key max:", key.max().item())        
-            q = q.to(torch.float32)
+            q = q.to(torch.float64)
             # Compute similarity scores between query and key
             score = torch.einsum('bd,bnwhd->bnwh', q, key)  # B x N x 7 x 7
+            # print("score min:", score.min().item(), "score max:", score.max().item())        
 
             # Create a Gaussian weight matrix centered at the current patch position
             gaussian_matrix = self.gw[patch_y][patch_x]
@@ -58,7 +59,7 @@ class Matrix():
             score = score * gaussian_matrix
             # print("score min:", score.min().item(), "score max:", score.max().item())        
             # Reshape and apply softmax
-            attn_weight = F.softmax(score.view(B, -1), dim=-1).view(B, N, 7, 7)
+            attn_weight = F.softmax(score.view(B, -1), dim=-1).view(B, N, 7, 7).to(torch.float32)
             # attn_weight = dropout(attn_weight)
             # print("attn_weight min:", attn_weight.min().item(), "attn_weight max:", attn_weight.max().item())        
 

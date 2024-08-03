@@ -18,6 +18,24 @@ from torch import autograd
 
 # matplotlib.use('TkAgg')
 from utils import Monitor
+def get_last_epoch(logs_dir):
+    """
+    获取最后一个epoch的编号。如果当前epoch的日志文件未完成,则返回上一个epoch编号。
+    """
+    log_files = sorted([f for f in os.listdir(logs_dir) if f.startswith('_') and f.endswith('log.txt')],
+                       key=lambda x: int(x.split('_')[1].split('/')[0]))
+
+    if not log_files:
+        return None  # 如果没有找到日志文件，返回None
+
+    last_log_file = os.path.join(logs_dir, log_files[-1])
+    with open(last_log_file, 'r') as f:
+        lines = f.readlines()
+    
+    if lines and lines[-1].startswith('best'):
+        return int(log_files[-1].split('_')[1].split('/')[0])
+    else:
+        return int(log_files[-1].split('_')[1].split('/')[0]) - 1
 
 
 def get_args():
@@ -80,6 +98,11 @@ def train(args):
     # os.environ["CUDA_VISIBLE_DEVICES"] = '5'
     # args.device = 'cuda:0'
     # print(args.sigma)
+    setting = f'_lr_{args.lr}_task_{args.task}'
+
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+
     padding = 1
     image_transform = torchvision.transforms.Compose(
         [torchvision.transforms.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
@@ -125,17 +148,29 @@ def train(args):
         raise ValueError("Please check the mode of InMeMo!")
 
     VP.to(args.device)
-    for _, p in VP.PromptGenerator.named_parameters():
-        p.requires_grad = True
+    best_iou = 0.
     optimizer = torch.optim.SGD(VP.PromptGenerator.parameters(), lr=args.lr, weight_decay=0)
     scheduler = Scheduler(args.scheduler, args.epoch).select_scheduler(optimizer)
+    begin_epoch = 1
+    ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
+    if os.path.exists(ckpt_path):
+        checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
+        # state_dict = torch.load(, map_location=args.device)
+        VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
+        optimizer.load_state_dict(checkpoint['optimizer_dict'])
+        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
+        best_iou = checkpoint['best_iou']  # 加载最佳 iou
+        scheduler.load_state_dict(checkpoint['scheduler_dict'])
+        print(begin_epoch)
+        print(best_iou)
 
-    setting = f'_lr_{args.lr}_task_{args.task}'
+    for _, p in VP.PromptGenerator.named_parameters():
+        p.requires_grad = True
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
+
+
     print(f'We use the mode of {args.mode}.')
     print(f'We adopt the arrangement of {args.arr}.')
     if args.aug:
@@ -148,11 +183,10 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    best_iou = 0.
     # scaler = GradScaler()
     with torch.autograd.detect_anomaly():
 
-        for epoch in range(1, args.epoch + 1):
+        for epoch in range(begin_epoch, args.epoch + 1):
             epoch_loss = 0.0
 
             eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
@@ -315,6 +349,7 @@ def train(args):
                         "optimizer_dict": optimizer.state_dict(),
                         "epoch": epoch,
                         "best_iou": best_iou,
+                        "scheduler_dict": scheduler.state_dict(),
                     }
                 if eval_dict['iou'] > best_iou:
                     best_iou = eval_dict['iou']
