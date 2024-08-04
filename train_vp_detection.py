@@ -146,6 +146,7 @@ def train(args):
         VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
     else:
         raise ValueError("Please check the mode of InMeMo!")
+    # scaler = GradScaler()
 
     VP.to(args.device)
     best_iou = 0.
@@ -161,6 +162,7 @@ def train(args):
         begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
         best_iou = checkpoint['best_iou']  # 加载最佳 iou
         scheduler.load_state_dict(checkpoint['scheduler_dict'])
+        # scaler.load_state_dict(checkpoint['scaler_dict'])
         print(begin_epoch)
         print(best_iou)
 
@@ -183,7 +185,6 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    # scaler = GradScaler()
     with torch.autograd.detect_anomaly():
 
         for epoch in range(begin_epoch, args.epoch + 1):
@@ -350,6 +351,7 @@ def train(args):
                         "epoch": epoch,
                         "best_iou": best_iou,
                         "scheduler_dict": scheduler.state_dict(),
+                        # "scaler_dict": scaler.state_dict(),
                     }
                 if eval_dict['iou'] > best_iou:
                     best_iou = eval_dict['iou']
