@@ -54,13 +54,14 @@ class DatasetPASCAL(Dataset):
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
+        self.cache = {}
 
     def __len__(self):
         # return 1000
-        if self.cls_base:
-            return len(self.img_metadata_val)
-        else:
-            return 1000
+        # if self.cls_base:
+        return len(self.img_metadata_val)
+        # else:
+        #     return 1000
 
     def get_top50_images_for_validation(self):
         print('feature name for val: ', self.feature_name[:-4] + '_val')
@@ -201,7 +202,10 @@ class DatasetPASCAL(Dataset):
         return canvas_list
 
     def __getitem__(self, idx):
-        idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
+        if idx in self.cache and self.cache[idx]['valid']:
+            # print("Cache hit for index:", idx)
+            return self.cache[idx]['batch']
+        # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
         grid_stack = torch.tensor([]) 
         #my code
         query_img_features = torch.tensor([]) 
@@ -258,6 +262,7 @@ class DatasetPASCAL(Dataset):
                  'support_features': support_features
                 ##end my code
                  }
+        self.cache[idx] = {'valid': True, 'batch': batch}
 
         return batch
 

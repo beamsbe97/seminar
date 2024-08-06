@@ -76,6 +76,7 @@ class DatasetPASCAL(Dataset):
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
+        self.cache = {}
 
     def __len__(self):
         return len(self.img_metadata_trn) if self.split == 'trn' else 1000
@@ -257,6 +258,9 @@ class DatasetPASCAL(Dataset):
 
     def __getitem__(self, idx):
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
+        if idx in self.cache and self.cache[idx]['valid']:
+            # print("Cache hit for index:", idx)
+            return self.cache[idx]['batch']
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
         support_masks = torch.tensor([]) 
@@ -384,6 +388,7 @@ class DatasetPASCAL(Dataset):
         #          'support_mask_feature': support_mask_feature,
         #         ##end my code
         #         }
+        self.cache[idx] = {'valid': True, 'batch': batch}
 
         return batch
 

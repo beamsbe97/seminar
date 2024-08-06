@@ -185,65 +185,131 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    with torch.autograd.detect_anomaly():
+    # with torch.autograd.detect_anomaly():
 
-        for epoch in range(begin_epoch, args.epoch + 1):
-            epoch_loss = 0.0
+    for epoch in range(begin_epoch, args.epoch + 1):
+        epoch_loss = 0.0
 
-            eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-            train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-            print("start_training round" + str(epoch))
-            print("lr_rate: ", optimizer.param_groups[0]["lr"])
-            lr_list.append(optimizer.param_groups[0]["lr"])
-            VP.train()
-            for i, data in enumerate(tqdm(dataloaders['train'])):
-                len_dataloader = len(dataloaders['train'])
-                support_img, support_mask, query_img, query_mask, grid_stack =\
-                    data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
+        eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
+        train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
+        print("start_training round" + str(epoch))
+        print("lr_rate: ", optimizer.param_groups[0]["lr"])
+        lr_list.append(optimizer.param_groups[0]["lr"])
+        VP.train()
+        for i, data in enumerate(tqdm(dataloaders['train'])):
+            len_dataloader = len(dataloaders['train'])
+            support_img, support_mask, query_img, query_mask, grid_stack =\
+                data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
+            support_features = data['support_features']
+            # print("pre    ",support_features[0][0])
+            query_img_features = data['query_img_features']
+            support_features = support_features.to(args.device, dtype=torch.float32)
+            query_img_features = query_img_features.to(args.device, dtype=torch.float32)
+            support_img = support_img.to(args.device, dtype=torch.float32)
+            support_mask = support_mask.to(args.device, dtype=torch.float32)
+            query_img = query_img.to(args.device, dtype=torch.float32)
+            query_mask = query_mask.to(args.device, dtype=torch.float32)
+            grid_stack = grid_stack.to(args.device, dtype=torch.float32)
+
+            optimizer.zero_grad()
+            with autocast():
+                loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
+                                query_img_features,support_features)
+                # scaled_loss = scaler.scale(loss)
+            if torch.isnan(loss):
+                raise ValueError("nan error!")
+
+            loss.backward()
+            # max_norm = 0.0
+            # parameters = VP.PromptGenerator.named_parameters()
+            # for name,p in parameters:
+            #     if p.grad is not None:
+            #         param_norm = p.grad.data.norm(2)
+            #         print(f"Parameter name: {name}")
+
+            #         print(p)
+            #         print(param_norm)
+            #         if param_norm > max_norm:
+            #             max_norm = param_norm
+
+            # print(f'当前梯度的最大范数: {max_norm}')
+
+            # if epoch>80:
+            #     torch.nn.utils.clip_grad_norm_(VP.parameters(), max_norm=1.0)
+            optimizer.step()
+            # scaler.update()
+
+            epoch_loss += loss.detach()
+            print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
+
+            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+                                                                                    canvas_pred_tokens, canvas_label,
+                                                                                    args.arr)
+            for index in range(len(original_image_list)):
+                sub_image = generated_result_list[index][113:, 113:]
+                sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
+                generated_result_list[index][113:, 113:] = sub_image
+
+                original_image = round_image(original_image_list[index], [WHITE, BLACK])
+                generated_result = generated_result_list[index]
+                if args.task == 'detection':
+                    generated_result = to_rectangle(generated_result)
+                # if index == 0:
+                #     image = TF.to_pil_image(generated_result_list[0])
+                #      # # 保存图像
+                #     image.save("result.jpg")
+                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                #     image.save("final_result.jpg")
+                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                #     image.save("original_image.jpg")
+                current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
+                
+                for i, j in current_metric.items():
+                    train_eval_dict[i] += (j / len(train_dataset))
+        print('val metric: {}'.format(train_eval_dict))
+        train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
+        scheduler.step()
+
+        average_epoch_loss = epoch_loss / len_dataloader
+        if average_epoch_loss <= min_loss:
+            min_loss = average_epoch_loss
+
+        print('epoch: {}, loss: {:.2f}'.format(epoch, average_epoch_loss))
+        print('min loss: {:.2f}'.format(min_loss))
+
+        if epoch % 1 == 0:
+            examples_save_path = eg_save_path + f'/{setting}_{epoch}/'
+            print("start_val round" + str(epoch // 1))
+            VP.eval()
+            os.makedirs(examples_save_path, exist_ok=True)
+            with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:
+                log.write(str(args) + '\n')
+
+            image_number = 0
+            # Validation phase
+            for i, data in enumerate(tqdm(dataloaders["val"])):
+                len_dataloader = len(dataloaders["val"])
                 support_features = data['support_features']
-                # print("pre    ",support_features[0][0])
                 query_img_features = data['query_img_features']
                 support_features = support_features.to(args.device, dtype=torch.float32)
                 query_img_features = query_img_features.to(args.device, dtype=torch.float32)
+                support_img, support_mask, query_img, query_mask, grid_stack =\
+                    data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
                 support_img = support_img.to(args.device, dtype=torch.float32)
                 support_mask = support_mask.to(args.device, dtype=torch.float32)
                 query_img = query_img.to(args.device, dtype=torch.float32)
                 query_mask = query_mask.to(args.device, dtype=torch.float32)
                 grid_stack = grid_stack.to(args.device, dtype=torch.float32)
 
-                optimizer.zero_grad()
-                with autocast():
-                    loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
-                                    query_img_features,support_features)
-                    # scaled_loss = scaler.scale(loss)
-
-                loss.backward()
-                # max_norm = 0.0
-                # parameters = VP.PromptGenerator.named_parameters()
-                # for name,p in parameters:
-                #     if p.grad is not None:
-                #         param_norm = p.grad.data.norm(2)
-                #         print(f"Parameter name: {name}")
-
-                #         print(p)
-                #         print(param_norm)
-                #         if param_norm > max_norm:
-                #             max_norm = param_norm
-
-                # print(f'当前梯度的最大范数: {max_norm}')
-
-                # if epoch>80:
-                #     torch.nn.utils.clip_grad_norm_(VP.parameters(), max_norm=1.0)
-                optimizer.step()
-                # scaler.update()
-
-                epoch_loss += loss.detach()
-                print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
+                _, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
+                                query_img_features,support_features)
+                
 
                 original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                        canvas_pred_tokens, canvas_label,
-                                                                                        args.arr)
+                                                                                    canvas_pred_tokens, canvas_label,
+                                                                                    args.arr)
                 for index in range(len(original_image_list)):
+
                     sub_image = generated_result_list[index][113:, 113:]
                     sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
                     generated_result_list[index][113:, 113:] = sub_image
@@ -252,118 +318,54 @@ def train(args):
                     generated_result = generated_result_list[index]
                     if args.task == 'detection':
                         generated_result = to_rectangle(generated_result)
+                    if args.save_examples:
+                        Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
+                            examples_save_path + f'generated_image_{image_number}.png')
                     # if index == 0:
                     #     image = TF.to_pil_image(generated_result_list[0])
-                    #      # # 保存图像
+
+                    #     # # 保存图像
                     #     image.save("result.jpg")
+                    # #    print(generated_result.shape)
                     #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                    #     # # 保存图像
                     #     image.save("final_result.jpg")
                     #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                    #     # # 保存图像
                     #     image.save("original_image.jpg")
+
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                    
+                    with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                        log.write(str(image_number) + '\t' + str(current_metric) + '\n')
+                    image_number += 1
+
                     for i, j in current_metric.items():
-                        train_eval_dict[i] += (j / len(train_dataset))
-            print('val metric: {}'.format(train_eval_dict))
-            train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-            scheduler.step()
+                        eval_dict[i] += (j / len(val_dataset))
 
-            average_epoch_loss = epoch_loss / len_dataloader
-            if average_epoch_loss <= min_loss:
-                min_loss = average_epoch_loss
-
-            print('epoch: {}, loss: {:.2f}'.format(epoch, average_epoch_loss))
-            print('min loss: {:.2f}'.format(min_loss))
-
-            if epoch % 1 == 0:
-                examples_save_path = eg_save_path + f'/{setting}_{epoch}/'
-                print("start_val round" + str(epoch // 1))
-                VP.eval()
-                os.makedirs(examples_save_path, exist_ok=True)
-                with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:
-                    log.write(str(args) + '\n')
-
-                image_number = 0
-                # Validation phase
-                for i, data in enumerate(tqdm(dataloaders["val"])):
-                    len_dataloader = len(dataloaders["val"])
-                    support_features = data['support_features']
-                    query_img_features = data['query_img_features']
-                    support_features = support_features.to(args.device, dtype=torch.float32)
-                    query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-                    support_img, support_mask, query_img, query_mask, grid_stack =\
-                        data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
-                    support_img = support_img.to(args.device, dtype=torch.float32)
-                    support_mask = support_mask.to(args.device, dtype=torch.float32)
-                    query_img = query_img.to(args.device, dtype=torch.float32)
-                    query_mask = query_mask.to(args.device, dtype=torch.float32)
-                    grid_stack = grid_stack.to(args.device, dtype=torch.float32)
-
-                    _, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
-                                    query_img_features,support_features)
-                    
-
-                    original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                        canvas_pred_tokens, canvas_label,
-                                                                                        args.arr)
-                    for index in range(len(original_image_list)):
-
-                        sub_image = generated_result_list[index][113:, 113:]
-                        sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
-                        generated_result_list[index][113:, 113:] = sub_image
-
-                        original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                        generated_result = generated_result_list[index]
-                        if args.task == 'detection':
-                            generated_result = to_rectangle(generated_result)
-                        if args.save_examples:
-                            Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
-                                examples_save_path + f'generated_image_{image_number}.png')
-                        # if index == 0:
-                        #     image = TF.to_pil_image(generated_result_list[0])
-
-                        #     # # 保存图像
-                        #     image.save("result.jpg")
-                        # #    print(generated_result.shape)
-                        #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                        #     # # 保存图像
-                        #     image.save("final_result.jpg")
-                        #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                        #     # # 保存图像
-                        #     image.save("original_image.jpg")
-
-                        current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                        with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-                            log.write(str(image_number) + '\t' + str(current_metric) + '\n')
-                        image_number += 1
-
-                        for i, j in current_metric.items():
-                            eval_dict[i] += (j / len(val_dataset))
-
-                print('val metric: {}'.format(eval_dict))
-                with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-                    log.write('all\t' + str(eval_dict) + '\n')
-                # Save CKPT
-                if args.vp_model == 'Prompt':
-                    state_dict = {
-                        "visual_prompt_dict": VP.PromptGenerator.state_dict(),
-                        "optimizer_dict": optimizer.state_dict(),
-                        "epoch": epoch,
-                        "best_iou": best_iou,
-                        "scheduler_dict": scheduler.state_dict(),
-                        # "scaler_dict": scaler.state_dict(),
-                    }
-                if eval_dict['iou'] > best_iou:
-                    best_iou = eval_dict['iou']
-                    state_dict['best_iou'] = best_iou
-                    torch.save(state_dict, os.path.join(model_save_path, 'best.pth'))
-                torch.save(state_dict, os.path.join(model_save_path, 'ckpt.pth'))
-                print('best iou: ', best_iou)
-                val_iou_list.append(eval_dict['iou'])
-                print('lr list: ', lr_list)
-                print('val iou list: ', val_iou_list)
-                with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-                    log.write('best\t' + str(best_iou) + '\n')
+            print('val metric: {}'.format(eval_dict))
+            with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                log.write('all\t' + str(eval_dict) + '\n')
+            # Save CKPT
+            if args.vp_model == 'Prompt':
+                state_dict = {
+                    "visual_prompt_dict": VP.PromptGenerator.state_dict(),
+                    "optimizer_dict": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "best_iou": best_iou,
+                    "scheduler_dict": scheduler.state_dict(),
+                    # "scaler_dict": scaler.state_dict(),
+                }
+            if eval_dict['iou'] > best_iou:
+                best_iou = eval_dict['iou']
+                state_dict['best_iou'] = best_iou
+                torch.save(state_dict, os.path.join(model_save_path, 'best.pth'))
+            torch.save(state_dict, os.path.join(model_save_path, 'ckpt.pth'))
+            print('best iou: ', best_iou)
+            val_iou_list.append(eval_dict['iou'])
+            print('lr list: ', lr_list)
+            print('val iou list: ', val_iou_list)
+            with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                log.write('best\t' + str(best_iou) + '\n')
 
 if __name__ == '__main__':
     if mp.get_start_method(allow_none=True) != 'spawn':

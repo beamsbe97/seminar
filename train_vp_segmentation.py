@@ -17,8 +17,6 @@ from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
 
-from utils import Monitor
-
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for segmentation', add_help=False)
     parser.add_argument('--mae_model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
@@ -39,6 +37,7 @@ def get_args():
     parser.add_argument('--dataset_type', default='pascal')
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
+    # parser.add_argument('--temperature', default=0.1, type=float)
     parser.add_argument('--fold', default=0, type=int)
     parser.add_argument('--split', default='trn', type=str)
     parser.add_argument('--purple', default=0, type=int)
@@ -82,6 +81,13 @@ def get_args():
 
 
 def train(args):
+
+    setting = f'_lr_{args.lr}_task_{args.task}'
+
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+
+
     padding = 1
     image_transform = T.Compose(
         [T.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
@@ -122,8 +128,8 @@ def train(args):
     dataloaders = {}
 
     # set batch size to 1/2 on val set to adapt GPU memory.修改了
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,num_workers=4)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size//2, shuffle=True,num_workers=4)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))
@@ -141,21 +147,35 @@ def train(args):
     else:
         raise ValueError("Please check the mode of InMeMo!")
 
+    # scaler = GradScaler()
+
     VP.to(args.device)
+
+    best_iou = 0.
+    optimizer = torch.optim.SGD(VP.PromptGenerator.parameters(), lr=args.lr, weight_decay=0)
+    scheduler = Scheduler(args.scheduler, args.epoch).select_scheduler(optimizer)
+    begin_epoch = 1
+    ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
+    if os.path.exists(ckpt_path):
+        checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
+        # state_dict = torch.load(, map_location=args.device)
+        VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
+        optimizer.load_state_dict(checkpoint['optimizer_dict'])
+        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
+        best_iou = checkpoint['best_iou']  # 加载最佳 iou
+        scheduler.load_state_dict(checkpoint['scheduler_dict'])
+        # scaler.load_state_dict(checkpoint['scaler_dict'])
+        print(begin_epoch)
+        print(best_iou)
+
     for _, p in VP.PromptGenerator.named_parameters():
         p.requires_grad = True
        # print(_)
 
-    optimizer = torch.optim.SGD(VP.PromptGenerator.parameters(), lr=args.lr, weight_decay=0)
-    scheduler = Scheduler(args.scheduler, args.epoch).select_scheduler(optimizer)
-  #  print(VP.PromptGenerator.vqgan.decoder.conv_in.weight.requires_grad)
-    setting = f'_lr_{args.lr}_task_{args.task}'
-
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
-
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
+
+  #  print(VP.PromptGenerator.vqgan.decoder.conv_in.weight.requires_grad)
 
     print(f'We use the mode of {args.mode}.')
     print(f'We adopt the arrangement of {args.arr}.')
@@ -165,11 +185,9 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    best_iou = 0.
-    scaler = GradScaler()
-    monitor = Monitor(max_patience=2)
+    # with torch.autograd.detect_anomaly():
 
-    for epoch in range(1, args.epoch + 1):
+    for epoch in range(begin_epoch, args.epoch + 1):
         epoch_loss = 0.0
 
         eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
@@ -196,10 +214,13 @@ def train(args):
             with autocast():
                 loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                                 query_img_features,support_features)
-                scaled_loss = scaler.scale(loss)
-            scaled_loss.backward()
-            scaler.step(optimizer)
-            scaler.update()
+                # scaled_loss = scaler.scale(loss)
+            if torch.isnan(loss):
+                raise ValueError("nan error!")
+
+            loss.backward()
+            optimizer.step()
+            # scaler.update()
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
 
@@ -292,10 +313,6 @@ def train(args):
 
                 for i, j in current_metric.items():
                     eval_dict[i] += (j / len(val_dataset))
-        is_break, is_lose_patience = monitor.update(eval_dict['iou'])
-        if is_break:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] *= 0.9
 
         print('val metric: {}'.format(eval_dict))
         with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
@@ -308,6 +325,8 @@ def train(args):
                 "optimizer_dict": optimizer.state_dict(),
                 "epoch": epoch,
                 "best_iou": best_iou,
+                "scheduler_dict": scheduler.state_dict(),
+                # "scaler_dict": scaler.state_dict(),
             }
         if eval_dict['iou'] > best_iou:
             best_iou = eval_dict['iou']
