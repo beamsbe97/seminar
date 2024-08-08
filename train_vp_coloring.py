@@ -91,6 +91,13 @@ def convert_to_rgb(image):
 def train(args):
     # os.environ["CUDA_VISIBLE_DEVICES"] = '5'
     # args.device = 'cuda:0'
+
+    setting = f'_lr_{args.lr}_task_{args.task}'
+
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+
+
     padding = 1
 
     image_transform = torchvision.transforms.Compose(
@@ -133,15 +140,25 @@ def train(args):
         raise ValueError("Please check the mode of InMeMo!")
 
     VP.to(args.device)
-    for _, p in VP.PromptGenerator.named_parameters():
-        p.requires_grad = True
+    best_mse = 1000
     optimizer = torch.optim.SGD(VP.PromptGenerator.parameters(), lr=args.lr, weight_decay=0)
     scheduler = Scheduler(args.scheduler, args.epoch).select_scheduler(optimizer)
+    begin_epoch = 1
+    ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
+    if os.path.exists(ckpt_path):
+        checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
+        # state_dict = torch.load(, map_location=args.device)
+        VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
+        optimizer.load_state_dict(checkpoint['optimizer_dict'])
+        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
+        best_mse = checkpoint['best_mse']  # 加载最佳 iou
+        scheduler.load_state_dict(checkpoint['scheduler_dict'])
+        # scaler.load_state_dict(checkpoint['scaler_dict'])
+        print(begin_epoch)
+        print(best_mse)
+    for _, p in VP.PromptGenerator.named_parameters():
+        p.requires_grad = True
 
-    setting = f'_lr_{args.lr}_task_{args.task}'
-
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
     print(f'We use the mode of {args.mode}.')
@@ -156,8 +173,7 @@ def train(args):
     lr_list = []
     val_mse_list = []
     min_loss = 100.0
-    best_mse = 1000
-    scaler = GradScaler()
+    # scaler = GradScaler()
 
     for epoch in range(1, args.epoch + 1):
         epoch_loss = 0.0
@@ -187,11 +203,12 @@ def train(args):
             with autocast():
                 loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                                 query_img_features,support_features)
-                scaled_loss = scaler.scale(loss)
-
-            scaled_loss.backward()
-            scaler.step(optimizer)
-            scaler.update()
+                # scaled_loss = scaler.scale(loss)
+            if torch.isnan(loss):
+                raise ValueError("nan error!")
+            loss.backward()
+            optimizer.step()
+            # scaler.update()
 
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
@@ -290,6 +307,7 @@ def train(args):
                     "optimizer_dict": optimizer.state_dict(),
                     "epoch": epoch,
                     "best_mse": best_mse,
+                    "scheduler_dict": scheduler.state_dict(),
                 }
             if eval_dict['mse'] < best_mse:
                 best_mse = eval_dict['mse']
