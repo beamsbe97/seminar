@@ -198,6 +198,8 @@ def train(args):
                 loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                                 query_img_features,support_features)
                 scaled_loss = scaler.scale(loss)
+            if torch.isnan(loss):
+                raise ValueError("nan error!")
 
             scaled_loss.backward()
             scaler.step(optimizer)
