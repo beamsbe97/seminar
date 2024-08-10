@@ -3,7 +3,7 @@ from evaluate.mae_utils import *
 from evaluate.segmentation_utils import *
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from models.prompt_generator import PromptGenerator
+from models.prompt_generator import PromptGenerator,PromptGeneratorlimzero
 from PIL import Image
 import torchvision.transforms.functional as TF
 
@@ -85,7 +85,10 @@ class PGVP(nn.Module):
         self.vqgan = vqgan
         self.arr = arr
         # print('????????',args.sigma)
-        self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma,device=args.device)
+        if args.choice == 'Zero':
+            self.PromptGenerator = PromptGeneratorlimzero(dropout=args.dropout)
+        else:
+            self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma,device=args.device)
         self.transform224 = ResizeTransform((224, 224))
         self.transform111 = ResizeTransform((111, 111))
         self.mode = mode

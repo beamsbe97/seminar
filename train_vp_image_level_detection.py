@@ -71,7 +71,8 @@ def get_args():
                         help="Number of mae weight hyperparameter,[0, 1].")
     parser.add_argument("--vp-model", type=str, default='pad',
                         help="pad prompter.")
-
+    parser.add_argument("--choice", type=str, default='Zero',
+                        help="choose prompt composer")
     return parser
 
 
@@ -79,6 +80,12 @@ def train(args):
     # os.environ["CUDA_VISIBLE_DEVICES"] = '5'
     # args.device = 'cuda:0'
     # print(args.sigma)
+
+    setting = f'_lr_{args.lr}_task_{args.task}'
+
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+
     padding = 1
     image_transform = torchvision.transforms.Compose(
         [torchvision.transforms.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
@@ -123,16 +130,30 @@ def train(args):
     else:
         raise ValueError("Please check the mode of InMeMo!")
 
+    scaler = GradScaler()
+
     VP.to(args.device)
-    for _, p in VP.PromptGenerator.named_parameters():
-        p.requires_grad = True
+
+    best_iou = 0.
     optimizer = torch.optim.SGD(VP.PromptGenerator.parameters(), lr=args.lr, weight_decay=0)
     scheduler = Scheduler(args.scheduler, args.epoch).select_scheduler(optimizer)
+    begin_epoch = 1
+    ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
+    if os.path.exists(ckpt_path):
+        checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
+        # state_dict = torch.load(, map_location=args.device)
+        VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
+        optimizer.load_state_dict(checkpoint['optimizer_dict'])
+        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
+        best_iou = checkpoint['best_iou']  # 加载最佳 iou
+        scheduler.load_state_dict(checkpoint['scheduler_dict'])
+        scaler.load_state_dict(checkpoint['scaler_dict'])
+        print(begin_epoch)
+        print(best_iou)
 
-    setting = f'_lr_{args.lr}_task_{args.task}'
+    for _, p in VP.PromptGenerator.named_parameters():
+        p.requires_grad = True
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
     print(f'We use the mode of {args.mode}.')
@@ -147,10 +168,8 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    best_iou = 0.
-    scaler = GradScaler()
 
-    for epoch in range(1, args.epoch + 1):
+    for epoch in range(begin_epoch, args.epoch + 1):
         epoch_loss = 0.0
 
         eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
@@ -182,7 +201,7 @@ def train(args):
 
             scaled_loss.backward()
             scaler.step(optimizer)
-            torch.nn.utils.clip_grad_norm_(VP.PromptGenerator.parameters(), max_norm=0.1)
+            # torch.nn.utils.clip_grad_norm_(VP.PromptGenerator.parameters(), max_norm=0.1)
             scaler.update()
 
             epoch_loss += loss.detach()
@@ -208,7 +227,7 @@ def train(args):
                 #     image.save("final_result.jpg")
                 #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
                 #     image.save("original_image.jpg")
-                current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
+                current_metric = calculate_metric(args, original_image, torch.tensor(generated_result), fg_color=WHITE, bg_color=BLACK)
                 
                 for i, j in current_metric.items():
                     train_eval_dict[i] += (j / len(train_dataset))
@@ -280,7 +299,7 @@ def train(args):
                     #     # # 保存图像
                     #     image.save("original_image.jpg")
 
-                    current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
+                    current_metric = calculate_metric(args, original_image, torch.tensor(generated_result), fg_color=WHITE, bg_color=BLACK)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')
                     image_number += 1
@@ -298,6 +317,8 @@ def train(args):
                     "optimizer_dict": optimizer.state_dict(),
                     "epoch": epoch,
                     "best_iou": best_iou,
+                    "scheduler_dict": scheduler.state_dict(),
+                    "scaler_dict": scaler.state_dict(),
                 }
             if eval_dict['iou'] > best_iou:
                 best_iou = eval_dict['iou']

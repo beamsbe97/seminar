@@ -72,6 +72,9 @@ def get_args():
                         help="pad prompter.")
     parser.add_argument("--to_device", type=str, default='cuda:0',
                         help="cuda:?")
+    parser.add_argument("--choice", type=str, default='Zero',
+                        help="choose prompt composer")
+
     return parser
 
 def calculate_mse(target, ours):
@@ -94,8 +97,8 @@ def train(args):
 
     setting = f'_lr_{args.lr}_task_{args.task}'
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
 
 
     padding = 1
@@ -138,6 +141,7 @@ def train(args):
         VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
     else:
         raise ValueError("Please check the mode of InMeMo!")
+    scaler = GradScaler()
 
     VP.to(args.device)
     best_mse = 1000
@@ -153,7 +157,7 @@ def train(args):
         begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
         best_mse = checkpoint['best_mse']  # 加载最佳 iou
         scheduler.load_state_dict(checkpoint['scheduler_dict'])
-        # scaler.load_state_dict(checkpoint['scaler_dict'])
+        scaler.load_state_dict(checkpoint['scaler_dict'])
         print(begin_epoch)
         print(best_mse)
     for _, p in VP.PromptGenerator.named_parameters():
@@ -175,7 +179,7 @@ def train(args):
     min_loss = 100.0
     # scaler = GradScaler()
 
-    for epoch in range(1, args.epoch + 1):
+    for epoch in range(begin_epoch, args.epoch + 1):
         epoch_loss = 0.0
 
         eval_dict = {'mse': 0.}
@@ -203,11 +207,12 @@ def train(args):
             with autocast():
                 loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                                 query_img_features,support_features)
-                # scaled_loss = scaler.scale(loss)
+                scaled_loss = scaler.scale(loss)
             if torch.isnan(loss):
                 raise ValueError("nan error!")
-            loss.backward()
-            optimizer.step()
+            scaled_loss.backward()
+            scaler.step(optimizer)
+            scaler.update()
             # scaler.update()
 
             epoch_loss += loss.detach()
@@ -308,6 +313,7 @@ def train(args):
                     "epoch": epoch,
                     "best_mse": best_mse,
                     "scheduler_dict": scheduler.state_dict(),
+                    "scaler_dict": scaler.state_dict(),
                 }
             if eval_dict['mse'] < best_mse:
                 best_mse = eval_dict['mse']
