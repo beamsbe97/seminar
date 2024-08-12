@@ -72,12 +72,14 @@ def get_args():
                         help="Number of pad weight hyperparameter [0, 1].")
     parser.add_argument("--vp-model", type=str, default='pad',
                         help="type of the VP Prompter.")
-
+    parser.add_argument("--loss_mean",type=int, default=1)
     # Number of images for few-shot training
     parser.add_argument("--n-shot", type=int, default=16,
                         help="Number of images for fsl.")
     parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
+    parser.add_argument('--align_s',type=int, default=1)
+    parser.add_argument('--align_q',type=int, default=1)
     return parser
 
 
@@ -85,8 +87,8 @@ def train(args):
 
     setting = f'_lr_{args.lr}_task_{args.task}'
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
 
 
     padding = 1

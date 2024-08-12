@@ -86,7 +86,7 @@ class PGVP(nn.Module):
         self.arr = arr
         # print('????????',args.sigma)
         if args.choice == 'Zero':
-            self.PromptGenerator = PromptGeneratorlimzero(dropout=args.dropout)
+            self.PromptGenerator = PromptGeneratorlimzero(dropout=args.dropout,args=args)
         else:
             self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma,device=args.device)
         self.transform224 = ResizeTransform((224, 224))
@@ -215,9 +215,11 @@ class PGVP(nn.Module):
         loss_ce = 0
         # print("y_pred min:", y_pred.min().item(), "y_pred max:", y_pred.max().item())
 
-        for sub_label in canvas_label:
-            loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
-        loss_ce /= N
-
+        if self.args.loss_mean:
+            for sub_label in canvas_label:
+                loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
+            loss_ce /= N
+        else :
+            loss_ce = self.vqgan.forward_loss(canvas_label[0],y_pred,mask)
 
         return loss_ce, canvas_pred_tokens, canvas_return_label

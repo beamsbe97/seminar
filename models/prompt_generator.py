@@ -14,14 +14,16 @@ import torch.nn.functional as F
 
 
 class PromptGeneratorlimzero(nn.Module):
-    def __init__(self,dropout = 0):
+    def __init__(self,args,dropout = 0):
         super().__init__()
         self.CrossAttention_S = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout,num_heads = 8,batch_first=True)
         self.SelfAttention_Q = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout, num_heads = 8,batch_first=True)
         self.SelfAttention_S = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout, num_heads = 8,batch_first=True)
         print('dropout ',dropout)
+        print('Zero\n')
         self.Layer_norm = nn.LayerNorm(1024)
         self.Linear = nn.Linear(1024,1024)
+        self.args = args
         self.initialize_weights()
 
     def initialize_weights(self):
@@ -55,16 +57,20 @@ class PromptGeneratorlimzero(nn.Module):
         N = support_features.shape[1] 
         # print(support_features.shape)
         qss = support_features.reshape(batchsize*N,98,1024)
-        qss_layer_norm = self.Layer_norm(qss)
-        ats_ans,_ = self.SelfAttention_S(qss_layer_norm,qss_layer_norm,qss_layer_norm)
-        support_features = qss + ats_ans #[B*N,98,1024]
+        if self.args.align_s:
+            qss_layer_norm = self.Layer_norm(qss)
+            ats_ans,_ = self.SelfAttention_S(qss_layer_norm,qss_layer_norm,qss_layer_norm)
+            support_features = qss + ats_ans #[B*N,98,1024]
+        else :
+            support_features = qss
         query_features = query_features.reshape(batchsize,1,7,14,1024)
         query_features_img = query_features[:,:,:,:7,:]
         query_features_mask = query_features[:,:,:,7:,:]
         query_features_img = query_features_img.reshape(batchsize,49,1024)
-        qsq_layner_norm = self.Layer_norm(query_features_img)
-        atq_ans,_ = self.SelfAttention_Q(qsq_layner_norm,qsq_layner_norm,qsq_layner_norm)
-        query_features_img = query_features_img + atq_ans #[B,49,1024]
+        if self.args.align_q:
+            qsq_layner_norm = self.Layer_norm(query_features_img)
+            atq_ans,_ = self.SelfAttention_Q(qsq_layner_norm,qsq_layner_norm,qsq_layner_norm)
+            query_features_img = query_features_img + atq_ans #[B,49,1024]
         query_features_img = query_features_img.reshape(batchsize*49,1,1024)
         support_features = support_features.reshape(batchsize*N,7,14,1024)
         support_features_img = support_features[:,:,:7,:]
