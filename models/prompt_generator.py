@@ -147,6 +147,30 @@ class Matrix():
             # Collect the result
             list1.append(attn_output1)
             list2.append(attn_output2)
+            # if i==24 :
+            #     with open(os.path.join('/data/luotianci/TO_JPSX/weight.txt'), 'a') as f:
+            #         print(patch_x,patch_y)
+            #         attn_weight_rounded = attn_weight.data.to(torch.float32).mul(100).round().div(100)
+
+            #         # rounded_tensor = round(attn_weight, 2)
+            #         print(attn_weight_rounded[0][0])
+            #         xxx = 0
+            #         yyy = 0
+            #         for b in range(B):
+            #             for n in range(N):
+            #                 yyy=0
+            #                 for i in range(7):
+            #                     for j in range(7):
+            #                         if attn_weight_rounded[b,n,i,j]>0.03:
+            #                             xxx+=1
+            #                             yyy+=1
+            #                         f.write(f"{attn_weight_rounded[b, n, i, j]:.2f} ")
+            #                     f.write('\n')
+            #                 f.write(str(yyy))
+            #                 f.write('\n')
+            #             f.write('\n') 
+            #             f.write(str(xxx))
+            #         f.write('\n\n\n\n\n') 
 
         output1 = torch.stack(list1,dim=1)
         output2 = torch.stack(list2,dim=1)

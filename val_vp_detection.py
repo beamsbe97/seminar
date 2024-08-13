@@ -8,9 +8,9 @@ from pathlib import Path
 from evaluate.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
-from evaluate_detection.canvas_ds2 import CanvasDataset4Val
+from evaluate_detection.canvas_ds import CanvasDataset4Val
 import torch.multiprocessing as mp
-from Codes.models.train_models import PGVP, _generate_result_for_canvas
+from models.train_models import PGVP, _generate_result_for_canvas
 from evaluate_detection.box_ops import to_rectangle
 from evaluate_detection.voc_orig import CLASS_NAMES
 import torchvision.transforms.functional as TF
@@ -43,8 +43,9 @@ def get_args():
     parser.add_argument('--random', action='store_true')
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--cls_base', action='store_true')
-    parser.add_argument('--sigma', default=[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], type=float, nargs=8, help='A list of four float numbers')
-
+    # parser.add_argument('--sigma', default=[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], type=float, nargs=8, help='A list of four float numbers')
+    parser.add_argument('--sigma', type = float,default=0.8)
+    parser.add_argument('--choice',type=str,default='xx')
     parser.add_argument("--p-eps", type=int, default=1,
                         help="Number of mae weight hyperparameter,[0, 1].")
     parser.add_argument("--batch-size", type=int, default=16,
@@ -58,8 +59,10 @@ def get_args():
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    parser.add_argument('--sigma', default=0.1, type=float)
-
+    # parser.add_argument('--sigma', default=0.1, type=float)
+    parser.add_argument('--loss_mean',type=int, default=1)
+    parser.add_argument('--align_s',type=int, default=1)
+    parser.add_argument('--align_q',type=int, default=1)
     return parser
 
 
@@ -89,7 +92,7 @@ def test_for_generate_results(args):
     # MAE_VQGAN model
     vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
 
-    if args.vp_model == 'prompt':
+    if args.vp_model == 'Prompt':
         print('load prompt generator')
         VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
     else:
@@ -102,8 +105,8 @@ def test_for_generate_results(args):
         VP.eval()
         VP.to(args.device)
 
-    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
-    eg_save_path = f'{args.output_dir}/{args.vp_model}_output_examples/'
+    setting = f'validate_fold{args.fold}_{args.task}_sigma_{args.sigma}_simidx_{args.simidx}'
+    eg_save_path = f'{args.output_dir}/output_examples/'
     os.makedirs(eg_save_path, exist_ok=True)
 
     print(f'This is the mode of {args.mode}.')
@@ -120,6 +123,9 @@ def test_for_generate_results(args):
 
     # Validation phase
     for i, data in enumerate(tqdm(dataloaders["val"])):
+        # print(i)
+        # # if i != 14:
+        # #     continue
         len_dataloader = len(dataloaders["val"])
         ##my code
         support_features = data['support_features']
@@ -171,15 +177,15 @@ def test_for_generate_results(args):
                 generated_result = to_rectangle(generated_result)
             print(generated_result.shape)
             image = TF.to_pil_image(generated_result.permute(2,0,1))
-            image.save("debuggggg.jpg")
+            # image.save("debuggggg.jpg")
 
-            Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
-                examples_save_path + f'generated_image_{image_number}.png')
+            # Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
+            #     examples_save_path + f'generated_image_{image_number}.png')
             # assert False
             current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
 
-            with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-                log.write(str(image_number) + '\t' + str(current_metric) + '\n')
+            # with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+            #     log.write(str(image_number) + '\t' + str(current_metric) + '\n')
             image_number += 1
 
             for i, j in current_metric.items():
