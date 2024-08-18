@@ -10,7 +10,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from evaluate.canvas_for_coloring import DatasetColorization
 import torch.multiprocessing as mp
-from Codes.models.train_models import _generate_result_for_canvas, PGVP, Scheduler
+from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 import torchvision.transforms.functional as TF
 
 def get_args():
@@ -62,10 +62,18 @@ def get_args():
                         help="the setting of arrangements of canvas")
     parser.add_argument("--p-eps", type=int, default=1,
                         help="Number of mae weight hyperparameter,[0, 1].")
-    parser.add_argument("--vp-model", type=str, default='pad',
+    parser.add_argument("--vp_model", type=str, default='pad',
                         help="pad prompter.")
     parser.add_argument("--to_device", type=str, default='cuda:0',
                         help="cuda:?")
+    parser.add_argument('--align_s',type=int, default=1)
+    parser.add_argument('--align_q',type=int, default=1)
+    parser.add_argument("--loss_mean",type=int, default=1)
+    parser.add_argument('--save_model_path',
+                        help='model checkpoint')
+    parser.add_argument("--choice", type=str, default='Zero',
+                        help="choose prompt composer")
+
     return parser
 def calculate_mse(target, ours):
     ours = (np.transpose(ours/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
@@ -93,7 +101,7 @@ def test_for_generate_results(args):
 
     val_dataset = {
         'image_net': DatasetColorization
-    }[args.dataset_type]("./imagenet", image_transform, mask_transform,split='val',simidx=args.simidx,to_device=args.to_device)
+    }[args.dataset_type](args.base_dir, image_transform, mask_transform,split='val',simidx=args.simidx,to_device=args.to_device)
 
     dataloaders = {}
     dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
@@ -118,14 +126,14 @@ def test_for_generate_results(args):
         VP.eval()
         VP.to(args.device)
 
-    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simdix}'
+    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
     eg_save_path = f'{args.output_dir}/{args.vp_model}_output_examples/'
     os.makedirs(eg_save_path, exist_ok=True)
 
     print(f'This is the mode of {args.mode}.')
     print(f'This is the arrangement of {args.arr}.')
 
-    eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
+    eval_dict = {'mse': 0}
     examples_save_path = eg_save_path + f'/{setting}/'
     os.makedirs(examples_save_path, exist_ok=True)
 
@@ -182,7 +190,7 @@ def test_for_generate_results(args):
             # image = TF.to_pil_image(generated_result.permute(2,0,1))
             # image.save("debuggggg.jpg")
 
-            Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
+            Image.fromarray(generated_result.astype(np.uint8)).save(
                 examples_save_path + f'generated_image_{image_number}.png')
             # assert False
             current_metric = calculate_mse(original_image, generated_result)

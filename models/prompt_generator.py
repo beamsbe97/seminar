@@ -18,6 +18,8 @@ class PromptGeneratorlimzero(nn.Module):
         super().__init__()
         self.CrossAttention_S = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout,num_heads = 8,batch_first=True)
         self.SelfAttention_Q = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout, num_heads = 8,batch_first=True)
+        if args.G_copy_another:
+            self.CrossAttention_SM = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout,num_heads = 8,batch_first=True)
         self.SelfAttention_S = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout, num_heads = 8,batch_first=True)
         print('dropout ',dropout)
         print('Zero\n')
@@ -81,6 +83,11 @@ class PromptGeneratorlimzero(nn.Module):
         support_features_mask = support_features_mask.permute(0,2,1,3).reshape(batchsize*49,N,1024)
         attn_out1,attn_weight = self.CrossAttention_S(query_features_img,support_features_img,support_features_img)         #[B*49,1,1024]
         attn_out2 = (attn_weight @ (self.Linear(support_features_mask)))          #[B*49,1,1024]
+        if self.args.G_copy_another:
+            attn_out2,attn_weight = self.CrossAttention_SM(query_features_img,support_features_mask,support_features_mask)
+        if self.args.G_only_div:
+            attn_out1 = support_features_img.mean(dim=1, keepdim=True)
+            attn_out2 = support_features_mask.mean(dim=1, keepdim=True)
         attn_out1 = attn_out1.reshape(batchsize,7,7,1024)
         attn_out2 = attn_out2.reshape(batchsize,7,7,1024)
         query_features_img = query_features_img.reshape(batchsize,7,7,1024)

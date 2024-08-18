@@ -92,6 +92,9 @@ def get_args():
                         help="pad prompter.")
     parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
+    parser.add_argument('--align_s',type=int, default=1)
+    parser.add_argument('--align_q',type=int, default=1)
+    parser.add_argument("--loss_mean",type=int, default=1)
     return parser
 
 

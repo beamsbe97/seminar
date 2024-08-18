@@ -10,7 +10,7 @@ from evaluate.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from Codes.models.train_models import _generate_result_for_canvas, PGVP
+from models.train_models import _generate_result_for_canvas, PGVP
 from evaluate_detection.voc_orig import CLASS_NAMES
 
 
@@ -49,13 +49,18 @@ def get_args():
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--arr", type=str, default='a1',
                         help="the setting of arrangements of canvas")
-    parser.add_argument("--vp-model", type=str, default='pad',  #  ['pad']
+    parser.add_argument("--vp_model", type=str, default='pad',  #  ['pad']
                         help="pad prompter")
     parser.add_argument('--save_model_path',
                         help='model checkpoint')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
     parser.add_argument('--sigma', default=0.1, type=float)
-
+    parser.add_argument("--choice", type=str, default='Zero',
+                        help="choose prompt composer")
+    parser.add_argument('--align_s',type=int, default=1)
+    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
+    parser.add_argument('--align_q',type=int, default=1)
+    parser.add_argument("--loss_mean",type=int, default=1)
     return parser
 
 
@@ -74,7 +79,7 @@ def test_for_generate_results(args):
                          mask_transform=mask_transform,
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                          feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                         arr=args.arr, simidx=args.simidx)
+                         arr=args.arr, simidx=args.simidx, args=args)
 
     dataloaders = {}
     dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)

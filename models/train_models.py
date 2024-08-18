@@ -214,7 +214,15 @@ class PGVP(nn.Module):
         N = canvas_label.shape[0]
         loss_ce = 0
         # print("y_pred min:", y_pred.min().item(), "y_pred max:", y_pred.max().item())
-
+        if self.args.G_pre_mean:
+            list = []
+            for sub_label in canvas_label:
+                list.append(self.vqgan.forward_loss(sub_label, y_pred, mask))
+            target = torch.mean(torch.stack(list, dim=0), dim=0)
+            loss = nn.CrossEntropyLoss(reduction='none')(input=y_pred.permute(0, 2, 1), target=target)
+            loss = (loss * mask).sum() / mask.sum()
+            loss_ce = loss/canvas_label[0].shape[0]
+            return loss_ce, canvas_pred_tokens, canvas_return_label
         if self.args.loss_mean:
             for sub_label in canvas_label:
                 loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)

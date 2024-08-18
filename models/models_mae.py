@@ -208,6 +208,8 @@ class MaskedAutoencoderViT(nn.Module):
         """
         with torch.no_grad():
             target = self.vae.get_codebook_indices(imgs).flatten(1)
+        # if args.G_pre_mean:
+        #     return target
         # print('target shape: ', target.shape)  # torch.Size([32, 196])
         # print('target: ', target)
         # print('mask: ', mask)
