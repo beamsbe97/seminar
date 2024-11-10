@@ -108,8 +108,8 @@ class PromptGeneratorConv(nn.Module):
         print('dropout ',dropout)
         print('Conv\n')
         print('kernel_size ',kernel_size)
-        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
-        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
+        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2,groups=1024)
+        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2,groups=1024)
         self.Layer_norm = nn.LayerNorm(1024)
         self.Linear = nn.Linear(1024,1024)
         self.args = args
@@ -150,8 +150,8 @@ class PromptGeneratorConv(nn.Module):
         suppmask_features = support_features[:,:,7:,:]
         suppimg_features = suppimg_features.permute(0,3,1,2)
         suppmask_features = suppmask_features.permute(0,3,1,2)
-        suppimg_features = self.conv_img(suppimg_features).permute(0,2,3,1)
-        suppmask_features = self.conv_msk(suppmask_features).permute(0,2,3,1)
+        suppimg_features = self.Layer_norm(self.conv_img(suppimg_features).permute(0,2,3,1))
+        suppmask_features = self.Layer_norm(self.conv_msk(suppmask_features).permute(0,2,3,1))
         support_features = torch.cat((suppimg_features,suppmask_features),dim=2)
         qss = support_features.reshape(batchsize*N,98,1024)
         if self.args.align_s:

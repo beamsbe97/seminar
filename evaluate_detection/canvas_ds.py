@@ -77,7 +77,7 @@ class CanvasDataset4Val(data.Dataset):
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_eval_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
-        # self.cache = {}
+        self.cache = {}
 
     def get_top50_images(self):
         with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_val_all_detection/new_top_50-similarity.json') as f:
@@ -88,11 +88,11 @@ class CanvasDataset4Val(data.Dataset):
         return len(self.val_ds)
     
     def __getitem__(self, idx):
-        # if idx in self.cache and self.cache[idx]['valid']:
-        #     # print("Cache hit for index:", idx)
-        #     return self.cache[idx]['batch']
-        # else:
-        #     print("Cache miss for index:", idx)
+        if idx in self.cache and self.cache[idx]['valid']:
+            # print("Cache hit for index:", idx)
+            return self.cache[idx]['batch']
+        else:
+            print("Cache miss for index:", idx)
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
         support_masks = torch.tensor([]) 
@@ -196,7 +196,7 @@ class CanvasDataset4Val(data.Dataset):
             'support_features': support_features
         ##end my code
         }
-        # self.cache[idx] = {'valid': True, 'batch': batch}
+        self.cache[idx] = {'valid': True, 'batch': batch}
 
         return batch
     def load_feature(self,query_name, support_name):
@@ -229,7 +229,7 @@ class CanvasDataset4Train(data.Dataset):
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_train_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
-        # self.cache = {}
+        self.cache = {}
     def get_top50_images(self):
         with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_pixel-level_train_all_detection/new_top_50-similarity.json') as f:
             images_top50 = json.load(f)
@@ -248,11 +248,11 @@ class CanvasDataset4Train(data.Dataset):
         return query_img_feature,support_feature
     
     def __getitem__(self, idx):
-        # if idx in self.cache and self.cache[idx]['valid']:
-        #     # print("Cache hit for index:", idx)
-        #     return self.cache[idx]['batch']
-        # else:
-        #     print("Cache miss for index:", idx)
+        if idx in self.cache and self.cache[idx]['valid']:
+            # print("Cache hit for index:", idx)
+            return self.cache[idx]['batch']
+        else:
+            print("Cache miss for index:", idx)
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
         support_masks = torch.tensor([]) 
@@ -356,7 +356,7 @@ class CanvasDataset4Train(data.Dataset):
         ##end my code
         }
         # print("hit?",1 if idx in self.cache else 0)
-        # self.cache[idx] = {'valid': True, 'batch': batch}
+        self.cache[idx] = {'valid': True, 'batch': batch}
         # print("idx",idx)
         # print("hit?",1 if idx in self.cache else 0)
         return batch
