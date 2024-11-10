@@ -108,8 +108,8 @@ class PromptGeneratorConv(nn.Module):
         print('dropout ',dropout)
         print('Conv\n')
         print('kernel_size ',kernel_size)
-        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,1)
-        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,1)
+        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
+        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
         self.Layer_norm = nn.LayerNorm(1024)
         self.Linear = nn.Linear(1024,1024)
         self.args = args

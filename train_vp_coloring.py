@@ -38,6 +38,7 @@ def get_args():
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
     parser.add_argument('--fold', default=0, type=int)
+    parser.add_argument('--kernel_size',default=3,type=int)
     parser.add_argument('--split', default='trn', type=str)
     parser.add_argument('--purple', default=0, type=int)
     parser.add_argument('--flip', default=0, type=int)
@@ -77,7 +78,9 @@ def get_args():
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
     parser.add_argument("--loss_mean",type=int, default=1)
-
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--G_only_div', action='store_true')
     return parser
 
 def calculate_mse(target, ours):
@@ -100,8 +103,8 @@ def train(args):
 
     setting = f'_lr_{args.lr}_task_{args.task}'
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}_kersiz_{args.kernel_size}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}_kersiz_{args.kernel_size}/{setting}'
 
 
     padding = 1
