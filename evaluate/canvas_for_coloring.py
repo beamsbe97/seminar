@@ -111,8 +111,8 @@ class DatasetColorization(Dataset):
         if idx in self.cache and self.cache[idx]['valid']:
             # print("Cache hit for index:", idx)
             return self.cache[idx]['batch']
-        else:
-            print("Cache miss for index:", idx)
+        # else:
+        #     print("Cache miss for index:", idx)
 
         query = self.ds[idx]
         grids = torch.tensor([]) 
