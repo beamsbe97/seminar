@@ -51,6 +51,9 @@ def get_args():
                         help="the setting of arrangements of canvas")
     parser.add_argument("--vp_model", type=str, default='pad',  #  ['pad']
                         help="pad prompter")
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--G_only_div', action='store_true')
     parser.add_argument('--save_model_path',
                         help='model checkpoint')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')

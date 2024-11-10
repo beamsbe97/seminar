@@ -45,7 +45,7 @@ def get_args():
     parser.add_argument('--cls_base', action='store_true')
     # parser.add_argument('--sigma', default=[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], type=float, nargs=8, help='A list of four float numbers')
     parser.add_argument('--sigma', type = float,default=0.8)
-    parser.add_argument('--choice',type=str,default='xx')
+    # parser.add_argument('--choice',type=str,default='xx')
     parser.add_argument("--p-eps", type=int, default=1,
                         help="Number of mae weight hyperparameter,[0, 1].")
     parser.add_argument("--batch-size", type=int, default=16,
@@ -61,8 +61,12 @@ def get_args():
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
     # parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument('--loss_mean',type=int, default=1)
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--G_only_div', action='store_true')    
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
+    parser.add_argument("--choice", type=str, default='Zero',help="choose prompt composer")
     return parser
 
 
@@ -105,8 +109,8 @@ def test_for_generate_results(args):
         VP.eval()
         VP.to(args.device)
 
-    setting = f'validate_fold{args.fold}_{args.task}_sigma_{args.sigma}_simidx_{args.simidx}'
-    eg_save_path = f'{args.output_dir}/output_examples/'
+    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
+    eg_save_path = f'{args.output_dir}/{args.vp_model}_output_examples/'
     os.makedirs(eg_save_path, exist_ok=True)
 
     print(f'This is the mode of {args.mode}.')
@@ -165,7 +169,6 @@ def test_for_generate_results(args):
         original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
-            # Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
 
             sub_image = generated_result_list[index][113:, 113:]
             sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
@@ -176,6 +179,7 @@ def test_for_generate_results(args):
             if args.task == 'detection':
                 generated_result = to_rectangle(generated_result)
             print(generated_result.shape)
+            Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
             image = TF.to_pil_image(generated_result.permute(2,0,1))
             # image.save("debuggggg.jpg")
 
@@ -184,8 +188,8 @@ def test_for_generate_results(args):
             # assert False
             current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
 
-            # with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-            #     log.write(str(image_number) + '\t' + str(current_metric) + '\n')
+            with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                log.write(str(image_number) + '\t' + str(current_metric) + '\n')
             image_number += 1
 
             for i, j in current_metric.items():

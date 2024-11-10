@@ -69,6 +69,7 @@ def get_args():
     parser.add_argument('--random', action='store_true')
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
+    parser.add_argument('--kernel_size',default=3,type=int)
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
     # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
@@ -95,6 +96,10 @@ def get_args():
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
     parser.add_argument("--loss_mean",type=int, default=1)
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--G_only_div', action='store_true')
+
     return parser
 
 
@@ -104,8 +109,9 @@ def train(args):
     # print(args.sigma)
     setting = f'_lr_{args.lr}_task_{args.task}'
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}_kersiz_{args.kernel_size}/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}_kersiz_{args.kernel_size}/{setting}'
+
 
     padding = 1
     image_transform = torchvision.transforms.Compose(
