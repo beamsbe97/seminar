@@ -203,6 +203,7 @@ class PromptGeneratorConv(nn.Module):
         support_tokens = torch.cat((attn_out1,attn_out2),dim=2)
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
+        loss = loss * self.args.lamba
         return canvas_tokens,loss
 
 

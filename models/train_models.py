@@ -47,7 +47,11 @@ def _generate_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, 
     generated_result_list = []
 
     for i in range(batch_size):
-        _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
+        if args.pos == 'before':
+            _, im_paste, _ = generate_image_zero_shot(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
+                                        canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
+        else:
+            _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
                                         canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
         canvas_ = torch.einsum('chw->hwc', canvas_label[i])
         canvas_ = torch.clip((canvas_.cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int().numpy()
@@ -185,7 +189,12 @@ class PGVP(nn.Module):
         ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
         # print(ids_shuffle,ids_shuffle.shape,len_keep,len_keep.shape)
         # assert False
-        y_pred, mask = generate_raw_pred_for_train(canvas_tokens, self.vqgan,
+        if self.args.pos == 'before':
+            y_pred, mask = generate_raw_pred_for_train_zero_shot(canvas_tokens, self.vqgan,
+                                                   ids_shuffle.to(self.device),
+                                                   len_keep, device=self.device)
+        else:
+            y_pred, mask = generate_raw_pred_for_train(canvas_tokens, self.vqgan,
                                                    ids_shuffle.to(self.device),
                                                    len_keep, device=self.device)
 

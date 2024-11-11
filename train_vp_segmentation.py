@@ -1,7 +1,7 @@
 import os.path
 from tqdm import tqdm
-from trainer import train_pascal_dataloader
-from trainer import val_pascal_dataloader
+from trainer import train_pascal_dataloader,train_pascal_dataloader_zero_shot
+from trainer import val_pascal_dataloader,val_pascal_dataloader_zero_shot
 from trainer import train_fewshot_pascal_dataloader
 from evaluate.reasoning_dataloader import *
 import torchvision.transforms as T
@@ -86,7 +86,10 @@ def get_args():
     parser.add_argument('--kernel_size', default=3, type=int)
     parser.add_argument("--loss_choice", type=str, default='l2',
                         help="choose prompt composer")
-    
+    parser.add_argument("--lamba", type=float, default='0.5',
+                        help="choose prompt composer")
+    parser.add_argument("--pos", type=str, default='after',
+                        help="choose prompt composer")
     return parser
 
 
@@ -95,7 +98,7 @@ def train(args):
     setting = f'_lr_{args.lr}_task_{args.task}'
     # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}'
+    key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
@@ -124,12 +127,27 @@ def train(args):
                              mask_transform=mask_transform,
                              flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                              feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                             arr=args.arr,simidx=args.simidx)
-
-
+                             arr=args.arr,simidx=args.simidx)   
+        
     val_dataset = {
         'pascal': val_pascal_dataloader.DatasetPASCAL,
     }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
+                         mask_transform=mask_transform,
+                         flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
+                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
+                         arr=args.arr,simidx=args.simidx)
+    
+    if args.pos == 'before':
+        train_dataset = {
+            'pascal': train_pascal_dataloader_zero_shot.DatasetPASCAL,
+        }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
+                             mask_transform=mask_transform,
+                             flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
+                             feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
+                             arr=args.arr,simidx=args.simidx)
+        val_dataset = {
+            'pascal': val_pascal_dataloader_zero_shot.DatasetPASCAL,
+        }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
                          mask_transform=mask_transform,
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                          feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
