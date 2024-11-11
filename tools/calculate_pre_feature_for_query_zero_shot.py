@@ -26,9 +26,9 @@ from PIL import Image
 from omegaconf import OmegaConf
 from models.vqgan import VQModel
 
-vq_ckpt_dir = './VisualICL/weights/vqgan'
+vq_ckpt_dir = '/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL/weights/vqgan'
 
-def load_maevq(chkpt_dir = './VisualICL/weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
+def load_maevq(chkpt_dir = '/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL/weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
     #vq = prepare_model(args.ckpt, arch=args.mae_model)
     # build model
     model = getattr(models_mae, arch)(vq_ckpt_dir)
@@ -66,13 +66,13 @@ model = load_maevq()
 model = model.eval()
 model = model.cuda()
 
-datapath = './VisualICL/pascal-5i'
+datapath = '/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL//pascal-5i'
 
 img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
 ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
 
-features_dir = f"./VisualICL/pascal-5i/VOC2012/{features_name}_{split}"
-meta_root = f"./VisualICL/splits/pascal/{split}"
+features_dir = f"/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL//pascal-5i/VOC2012/{features_name}_{split}"
+meta_root = f"/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL//splits/pascal/{split}"
 
 transform = T.Compose([T.Resize((224, 224), 3),T.ToTensor()])
 imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).cuda()
