@@ -91,8 +91,8 @@ class CanvasDataset4Val(data.Dataset):
         if idx in self.cache and self.cache[idx]['valid']:
             # print("Cache hit for index:", idx)
             return self.cache[idx]['batch']
-        else:
-            print("Cache miss for index:", idx)
+        # else:
+        #     print("Cache miss for index:", idx)
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
         support_masks = torch.tensor([]) 
