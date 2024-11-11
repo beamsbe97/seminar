@@ -1,7 +1,7 @@
 import os.path
 from tqdm import tqdm
-from trainer import train_pascal_dataloader
-from trainer import val_pascal_dataloader
+from trainer import train_pascal_dataloader_zero_shot
+from trainer import val_pascal_dataloader_zero_shot
 from trainer import train_fewshot_pascal_dataloader
 from evaluate.reasoning_dataloader import *
 import torchvision.transforms as T
@@ -114,21 +114,21 @@ def train(args):
                              arr=args.arr, n_shot=args.n_shot,simidx=args.simidx)
     else:
         train_dataset = {
-            'pascal': train_pascal_dataloader.DatasetPASCAL,
+            'pascal': train_pascal_dataloader_zero_shot.DatasetPASCAL,
         }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
                              mask_transform=mask_transform,
                              flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                              feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                             arr=args.arr,simidx=args.simidx)
+                             arr=args.arr,simidx=args.simidx,se=True)
 
 
     val_dataset = {
-        'pascal': val_pascal_dataloader.DatasetPASCAL,
+        'pascal': val_pascal_dataloader_zero_shot.DatasetPASCAL,
     }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
                          mask_transform=mask_transform,
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                          feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                         arr=args.arr,simidx=args.simidx)
+                         arr=args.arr,simidx=args.simidx,se=True)
     print('number of val demonstation',args.simidx)
     print('length of val dataset: ', len(val_dataset))
 
@@ -220,7 +220,7 @@ def train(args):
             optimizer.zero_grad()
             with autocast():
                 loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
-                                query_img_features,support_features)
+                                query_img_features,support_features,False)
                 scaled_loss = scaler.scale(loss)
             if torch.isnan(loss):
                 raise ValueError("nan error!")
@@ -231,29 +231,30 @@ def train(args):
             # scaler.update()
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
-
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                     canvas_pred_tokens, canvas_label,
-                                                                                     args.arr)
-            for index in range(len(original_image_list)):
-                original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                
-                generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
-                # if index == 0:
-                #     image = TF.to_pil_image(generated_result_list[0])
-                #      # # 保存图像
-                #     image.save("result.jpg")
-                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                #     image.save("final_result.jpg")
-                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                #     image.save("original_image.jpg")
-                current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                
-                for i, j in current_metric.items():
-                    train_eval_dict[i] += (j / len(train_dataset))
-            # assert False
-        print('val metric: {}'.format(train_eval_dict))
-        train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
+            if epoch%30 == 0:
+                original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+                                                                                        canvas_pred_tokens, canvas_label,
+                                                                                        args.arr)
+                for index in range(len(original_image_list)):
+                    original_image = round_image(original_image_list[index], [WHITE, BLACK])
+                    
+                    generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
+                    # if index == 0:
+                    #     image = TF.to_pil_image(generated_result_list[0])
+                    #      # # 保存图像
+                    #     image.save("result.jpg")
+                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                    #     image.save("final_result.jpg")
+                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                    #     image.save("original_image.jpg")
+                    current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
+                    print(current_metric['iou'])
+                    for i, j in current_metric.items():
+                        train_eval_dict[i] += (j / len(train_dataset))
+                # assert False
+        if epoch%30 == 0:
+            print('val metric: {}'.format(train_eval_dict))
+            train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
 
         scheduler.step()
 
@@ -272,81 +273,84 @@ def train(args):
         with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:
             log.write(str(args) + '\n')
         image_number = 0
+        epoch_loss = 0
+        if epoch%30 == 0:
+            # Validation phase
+            for i, data in enumerate(tqdm(dataloaders["val"])):
+                len_dataloader = len(dataloaders["val"])
+                ##my code
+                support_features = data['support_features']
+                query_img_features = data['query_img_features']
+                support_features = support_features.to(args.device, dtype=torch.float32)
+                query_img_features = query_img_features.to(args.device, dtype=torch.float32)
+                ##end my code
+                support_img, support_mask, query_img, query_mask, grid_stack = \
+                    data['support_img'], data['support_mask'], data['query_img'], data['query_mask'], data['grid_stack']
+                support_img = support_img.to(args.device, dtype=torch.float32)
+                support_mask = support_mask.to(args.device, dtype=torch.float32)
+                query_img = query_img.to(args.device, dtype=torch.float32)
+                query_mask = query_mask.to(args.device, dtype=torch.float32)
+                grid_stack = grid_stack.to(args.device, dtype=torch.float32)
 
-        # Validation phase
-        for i, data in enumerate(tqdm(dataloaders["val"])):
-            len_dataloader = len(dataloaders["val"])
-            ##my code
-            support_features = data['support_features']
-            query_img_features = data['query_img_features']
-            support_features = support_features.to(args.device, dtype=torch.float32)
-            query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-            ##end my code
-            support_img, support_mask, query_img, query_mask, grid_stack = \
-                data['support_img'], data['support_mask'], data['query_img'], data['query_mask'], data['grid_stack']
-            support_img = support_img.to(args.device, dtype=torch.float32)
-            support_mask = support_mask.to(args.device, dtype=torch.float32)
-            query_img = query_img.to(args.device, dtype=torch.float32)
-            query_mask = query_mask.to(args.device, dtype=torch.float32)
-            grid_stack = grid_stack.to(args.device, dtype=torch.float32)
+                loss, canvas_pred_tokens, canvas_label = VP(support_img.unsqueeze(1), support_mask.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
+                                    query_img_features, support_features,True)
+                epoch_loss += loss.detach()
+                print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
 
-            _, canvas_pred_tokens, canvas_label = VP(support_img.unsqueeze(1), support_mask.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
-                                query_img_features, support_features)
+                original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+                                                                                        canvas_pred_tokens, canvas_label,
+                                                                                        args.arr)
+                for index in range(len(original_image_list)):
+                    if args.save_examples:
+                        Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
+                    original_image = round_image(original_image_list[index], [WHITE, BLACK])
+                    generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
+                    # if index == 0:
+                    #     image = TF.to_pil_image(generated_result_list[0])
 
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                     canvas_pred_tokens, canvas_label,
-                                                                                     args.arr)
-            for index in range(len(original_image_list)):
-                if args.save_examples:
-                    Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
-                original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
-                # if index == 0:
-                #     image = TF.to_pil_image(generated_result_list[0])
+                    #      # # 保存图像
+                    #     image.save("result.jpg")
+                    # #    print(generated_result.shape)
+                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                    #     # # 保存图像
+                    #     image.save("final_result.jpg")
+                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                    #     # # 保存图像
+                    #     image.save("original_image.jpg")
+                    current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
+                    
+                    with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                        log.write(str(image_number) + '\t' + str(current_metric) + '\n')
+                    image_number += 1
 
-                #      # # 保存图像
-                #     image.save("result.jpg")
-                # #    print(generated_result.shape)
-                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                #     # # 保存图像
-                #     image.save("final_result.jpg")
-                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                #     # # 保存图像
-                #     image.save("original_image.jpg")
-                current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                
-                with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-                    log.write(str(image_number) + '\t' + str(current_metric) + '\n')
-                image_number += 1
+                    for i, j in current_metric.items():
+                        eval_dict[i] += (j / len(val_dataset))
 
-                for i, j in current_metric.items():
-                    eval_dict[i] += (j / len(val_dataset))
+            print('val metric: {}'.format(eval_dict))
+            with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                log.write('all\t' + str(eval_dict) + '\n')
 
-        print('val metric: {}'.format(eval_dict))
-        with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-            log.write('all\t' + str(eval_dict) + '\n')
-
-        # Save CKPT
-        if args.vp_model == 'Prompt':
-            state_dict = {
-                "visual_prompt_dict": VP.PromptGenerator.state_dict(),
-                "optimizer_dict": optimizer.state_dict(),
-                "epoch": epoch,
-                "best_iou": best_iou,
-                "scheduler_dict": scheduler.state_dict(),
-                "scaler_dict": scaler.state_dict(),
-            }
-        if eval_dict['iou'] > best_iou:
-            best_iou = eval_dict['iou']
-            state_dict['best_iou'] = best_iou
-            torch.save(state_dict, os.path.join(model_save_path, 'best.pth'))
-        torch.save(state_dict, os.path.join(model_save_path, 'ckpt.pth'))
-        print('best iou: ', best_iou)
-        val_iou_list.append(eval_dict['iou'])
-        print('lr list: ', lr_list)
-        print('val iou list: ', val_iou_list)
-        with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-            log.write('best\t' + str(best_iou) + '\n')
+            # Save CKPT
+            if args.vp_model == 'Prompt':
+                state_dict = {
+                    "visual_prompt_dict": VP.PromptGenerator.state_dict(),
+                    "optimizer_dict": optimizer.state_dict(),
+                    "epoch": epoch,
+                    "best_iou": best_iou,
+                    "scheduler_dict": scheduler.state_dict(),
+                    "scaler_dict": scaler.state_dict(),
+                }
+            if eval_dict['iou'] > best_iou:
+                best_iou = eval_dict['iou']
+                state_dict['best_iou'] = best_iou
+                torch.save(state_dict, os.path.join(model_save_path, 'best.pth'))
+            torch.save(state_dict, os.path.join(model_save_path, 'ckpt.pth'))
+            print('best iou: ', best_iou)
+            val_iou_list.append(eval_dict['iou'])
+            print('lr list: ', lr_list)
+            print('val iou list: ', val_iou_list)
+            with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
+                log.write('best\t' + str(best_iou) + '\n')
         
 if __name__ == '__main__':
     if mp.get_start_method(allow_none=True) != 'spawn':

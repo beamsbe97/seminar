@@ -47,7 +47,7 @@ def _generate_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, 
     generated_result_list = []
 
     for i in range(batch_size):
-        _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
+        _, im_paste, _ = generate_image_zero_shot(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
                                         canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
         canvas_ = torch.einsum('chw->hwc', canvas_label[i])
         canvas_ = torch.clip((canvas_.cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int().numpy()
@@ -185,18 +185,18 @@ class PGVP(nn.Module):
         ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
         # print(ids_shuffle,ids_shuffle.shape,len_keep,len_keep.shape)
         # assert False
-        y_pred, mask = generate_raw_pred_for_train(canvas_tokens, self.vqgan,
+        y_pred, mask = generate_raw_pred_for_train_zero_shot(canvas_tokens, self.vqgan,
                                                    ids_shuffle.to(self.device),
                                                    len_keep, device=self.device)
 
         return y_pred, mask
 
-    def forward(self, support_img, support_mask, query_img, query_mask, grid, query_features, support_features):
+    def forward(self, support_img, support_mask, query_img, query_mask, grid, query_features, support_features,need_pred):
         canvas_label = grid.clone()
         canvas_return_label = grid.clone()
         if self.args.dataset_type != 'pascal_det':
             canvas_return_label = (canvas_return_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
-
+        # print(canvas_return_label.shape)
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
 
@@ -205,11 +205,12 @@ class PGVP(nn.Module):
 
 
         canvas_pred_tokens,loss_zzh = self.PromptGenerator(support_features,query_features)
-
+        # canvas_pred_tokens = torch.cat((support_features.reshape(canvas_return_label.shape[0],98,1024),query_features.reshape(canvas_return_label.shape[0],98,1024)),dim=1)
         grid = grid.permute(1,0,2,3,4)
         grid = grid[0]
         # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
-        y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
+        if need_pred:
+            y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if self.args.dataset_type != 'pascal_det':
             canvas_label = (canvas_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]

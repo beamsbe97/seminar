@@ -84,15 +84,20 @@ def get_args():
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
     parser.add_argument('--kernel_size', default=3, type=int)
+    parser.add_argument("--loss_choice", type=str, default='l2',
+                        help="choose prompt composer")
+    
     return parser
 
 
 def train(args):
 
     setting = f'_lr_{args.lr}_task_{args.task}'
-
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}_kersiz_{args.kernel_size}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}_kersiz_{args.kernel_size}/{setting}'
+    # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
+    task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
+    key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
+    eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
 
     padding = 1

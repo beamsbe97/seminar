@@ -108,8 +108,8 @@ class PromptGeneratorConv(nn.Module):
         print('dropout ',dropout)
         print('Conv\n')
         print('kernel_size ',kernel_size)
-        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2,groups=1024)
-        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2,groups=1024)
+        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
+        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
         self.Layer_norm = nn.LayerNorm(1024)
         self.Linear = nn.Linear(1024,1024)
         self.args = args
@@ -187,11 +187,17 @@ class PromptGeneratorConv(nn.Module):
         attn_out2 = attn_out2.reshape(batchsize,7,7,1024)
         query_features_img = query_features_img.reshape(batchsize,7,7,1024)
         query_features_mask = query_features_mask.reshape(batchsize,7,7,1024)
-        cosine_loss_img = F.cosine_embedding_loss(query_features_img,attn_out1, torch.tensor([1]))
-        cosine_loss_msk = F.cosine_embedding_loss(query_features_mask,attn_out2, torch.tensor([1]))
-        l1_loss_img = F.l1_loss(query_features_img, attn_out1)
-        l1_loss_msk = F.l1_loss(query_features_mask, attn_out2)
-        loss = cosine_loss_img+cosine_loss_msk+l1_loss_img+l1_loss_msk
+        cosine_loss_img = F.cosine_embedding_loss(query_features_img.reshape(batchsize*49,1024),attn_out1.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
+        cosine_loss_msk = F.cosine_embedding_loss(query_features_mask.reshape(batchsize*49,1024),attn_out2.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
+        # l1_loss_img = F.l1_loss(query_features_img, attn_out1)
+        # l1_loss_msk = F.l1_loss(query_features_mask, attn_out2)
+        l2_loss_img = F.mse_loss(query_features_img, attn_out1)
+        l2_loss_msk = F.mse_loss(query_features_mask, attn_out2)
+
+        # loss = cosine_loss_img+cosine_loss_msk+l1_loss_img+l1_loss_msk
+        # loss = cosine_loss_img+cosine_loss_msk
+        # loss = l1_loss_img+l1_loss_msk
+        loss = l2_loss_img + l2_loss_msk
         support_tokens = torch.cat((attn_out1,attn_out2),dim=2)
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
