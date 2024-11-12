@@ -42,7 +42,7 @@ class DatasetColorization(Dataset):
         else :
             self.img_feature_for_train_path = f'{datapath}/features_vit-laion2b_pixel-level_trn/folder_query_features_by_vqgan_encoder.h5df'
         self.support_feature_for_train_path = f'{datapath}/features_vit-laion2b_pixel-level_trn/folder_support_features_by_vqgan_encoder.h5df'
-        self.cache= {}
+        # self.cache= {}
     def __len__(self):
         return 50000
 
@@ -108,9 +108,9 @@ class DatasetColorization(Dataset):
         return Image.open(os.path.join(self.query_mask_path, img_name))
 
     def __getitem__(self, idx):
-        if idx in self.cache and self.cache[idx]['valid']:
-            # print("Cache hit for index:", idx)
-            return self.cache[idx]['batch']
+        # if idx in self.cache and self.cache[idx]['valid']:
+        #     # print("Cache hit for index:", idx)
+        #     return self.cache[idx]['batch']
         # else:
         #     print("Cache miss for index:", idx)
 
@@ -184,7 +184,7 @@ class DatasetColorization(Dataset):
             'support_features': support_features
         ##end my code
         }
-        self.cache[idx] = {'valid': True, 'batch': batch}
+        # self.cache[idx] = {'valid': True, 'batch': batch}
 
         return batch
 
