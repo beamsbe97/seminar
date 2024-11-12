@@ -1,7 +1,7 @@
 import os.path
 from tqdm import tqdm
-from trainer import train_pascal_dataloader,train_pascal_dataloader_zero_shot
-from trainer import val_pascal_dataloader,val_pascal_dataloader_zero_shot
+from trainer import train_pascal_dataloader_not_oom
+from trainer import val_pascal_dataloader_not_oom
 from trainer import train_fewshot_pascal_dataloader
 from evaluate.reasoning_dataloader import *
 import torchvision.transforms as T
@@ -122,7 +122,7 @@ def train(args):
                              arr=args.arr, n_shot=args.n_shot,simidx=args.simidx)
     else:
         train_dataset = {
-            'pascal': train_pascal_dataloader.DatasetPASCAL,
+            'pascal': train_pascal_dataloader_not_oom.DatasetPASCAL,
         }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
                              mask_transform=mask_transform,
                              flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
@@ -130,36 +130,36 @@ def train(args):
                              arr=args.arr,simidx=args.simidx)   
         
     val_dataset = {
-        'pascal': val_pascal_dataloader.DatasetPASCAL,
+        'pascal': val_pascal_dataloader_not_oom.DatasetPASCAL,
     }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
                          mask_transform=mask_transform,
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                          feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
                          arr=args.arr,simidx=args.simidx)
     
-    if args.pos == 'before':
-        train_dataset = {
-            'pascal': train_pascal_dataloader_zero_shot.DatasetPASCAL,
-        }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
-                             mask_transform=mask_transform,
-                             flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
-                             feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                             arr=args.arr,simidx=args.simidx)
-        val_dataset = {
-            'pascal': val_pascal_dataloader_zero_shot.DatasetPASCAL,
-        }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
-                         mask_transform=mask_transform,
-                         flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
-                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                         arr=args.arr,simidx=args.simidx)
+    # if args.pos == 'before':
+    #     train_dataset = {
+    #         'pascal': train_pascal_dataloader_zero_shot.DatasetPASCAL,
+    #     }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
+    #                          mask_transform=mask_transform,
+    #                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
+    #                          feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
+    #                          arr=args.arr,simidx=args.simidx)
+    #     val_dataset = {
+    #         'pascal': val_pascal_dataloader_zero_shot.DatasetPASCAL,
+    #     }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
+    #                      mask_transform=mask_transform,
+    #                      flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
+    #                      feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
+    #                      arr=args.arr,simidx=args.simidx)
     print('number of val demonstation',args.simidx)
     print('length of val dataset: ', len(val_dataset))
 
     dataloaders = {}
 
     # set batch size to 1/2 on val set to adapt GPU memory.修改了
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False,num_workers=4)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,num_workers=4)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))

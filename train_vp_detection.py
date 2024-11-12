@@ -263,32 +263,32 @@ def train(args):
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
 
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                    canvas_pred_tokens, canvas_label,
-                                                                                    args.arr)
-            for index in range(len(original_image_list)):
-                sub_image = generated_result_list[index][113:, 113:]
-                sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
-                generated_result_list[index][113:, 113:] = sub_image
+        #     original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+        #                                                                             canvas_pred_tokens, canvas_label,
+        #                                                                             args.arr)
+        #     for index in range(len(original_image_list)):
+        #         sub_image = generated_result_list[index][113:, 113:]
+        #         sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
+        #         generated_result_list[index][113:, 113:] = sub_image
 
-                original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                generated_result = generated_result_list[index]
-                if args.task == 'detection':
-                    generated_result = to_rectangle(generated_result)
-                # if index == 0:
-                #     image = TF.to_pil_image(generated_result_list[0])
-                #      # # 保存图像
-                #     image.save("result.jpg")
-                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                #     image.save("final_result.jpg")
-                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                #     image.save("original_image.jpg")
-                current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
+        #         original_image = round_image(original_image_list[index], [WHITE, BLACK])
+        #         generated_result = generated_result_list[index]
+        #         if args.task == 'detection':
+        #             generated_result = to_rectangle(generated_result)
+        #         # if index == 0:
+        #         #     image = TF.to_pil_image(generated_result_list[0])
+        #         #      # # 保存图像
+        #         #     image.save("result.jpg")
+        #         #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+        #         #     image.save("final_result.jpg")
+        #         #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+        #         #     image.save("original_image.jpg")
+        #         current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                 
-                for i, j in current_metric.items():
-                    train_eval_dict[i] += (j / len(train_dataset))
-        print('val metric: {}'.format(train_eval_dict))
-        train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
+        #         for i, j in current_metric.items():
+        #             train_eval_dict[i] += (j / len(train_dataset))
+        # print('val metric: {}'.format(train_eval_dict))
+        # train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
         scheduler.step()
 
         average_epoch_loss = epoch_loss / len_dataloader
