@@ -20,12 +20,12 @@ from evaluate.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from models.prompt_generator import PromptGenerator
-from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
 import torch.nn.utils.parametrize as parametrize
-from trainer.Lora import linear_layer_parameterization,save_lora_state_dict,load_lora_state_dict,freeze_base_weights
+# from trainer.Lora import linear_layer_parameterization,save_lora_state_dict,load_lora_state_dict,freeze_base_weights
+from trainer.P_tuning import *
+from models.train_models import Scheduler
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for segmentation', add_help=False)
@@ -99,18 +99,38 @@ def get_args():
 
     return parser
 
-def _generate_raw_prediction(model, canvas_tokens, arr,args):
+def _generate_result_for_canvas(args, model,p_tuning_model, canvas_pred_tokens , canvas_label, arr):
+    """canvas is already in the right range."""
+    ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
+    batch_size = canvas_pred_tokens.shape[0]
+    original_image_list = []
+    generated_result_list = []
+
+    for i in range(batch_size):
+        _, im_paste, _ = generate_image_for_ptuning(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model,p_tuning_model, ids_shuffle.to(args.device),
+                                    canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
+        canvas_ = torch.einsum('chw->hwc', canvas_label[i])
+        canvas_ = torch.clip((canvas_.cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int().numpy()
+        assert canvas_.shape == im_paste.shape, (canvas_.shape, im_paste.shape)
+
+        original_image_list.append(np.uint8(canvas_))
+        generated_result_list.append(np.uint8(im_paste))
+
+
+    return original_image_list, generated_result_list
+
+def _generate_raw_prediction(model,p_tuning_model, canvas_tokens, arr,args):
     """canvas is already in the right range."""
     ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
     # ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
     # print(ids_shuffle,ids_shuffle.shape,len_keep,len_keep.shape)
     # assert False
-    y_pred, mask = generate_raw_pred_for_train(canvas_tokens, model,
+    y_pred, mask = generate_raw_pred_for_p_tuning(canvas_tokens, model,p_tuning_model,
                                                 ids_shuffle.to(args.device),
                                                 len_keep, device=args.device)
     return y_pred, mask
 
-def model_forward(model, support_img, support_mask, query_img, query_mask, grid, query_features, support_features,args,imagenet_mean, imagenet_std):
+def model_forward(model,p_tuning_model, support_img, support_mask, query_img, query_mask, grid, query_features, support_features,args,imagenet_mean, imagenet_std):
         canvas_label = grid.clone()
         canvas_return_label = grid.clone()
         if args.dataset_type != 'pascal_det':
@@ -119,13 +139,13 @@ def model_forward(model, support_img, support_mask, query_img, query_mask, grid,
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
         bz = support_features.shape[0]
-        print(support_features.shape,query_features.shape)
+        # print(support_features.shape,query_features.shape)
         canvas_pred_tokens = torch.cat((support_features,query_features),dim=2)
         canvas_pred_tokens = canvas_pred_tokens.reshape(bz,196,1024)
         grid = grid.permute(1,0,2,3,4)
         grid = grid[0]
         # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
-        y_pred, mask = _generate_raw_prediction(model,canvas_pred_tokens, args.arr,args)
+        y_pred, mask = _generate_raw_prediction(model,p_tuning_model,canvas_pred_tokens, args.arr,args)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if args.dataset_type != 'pascal_det':
             canvas_label = (canvas_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
@@ -162,7 +182,7 @@ def model_forward(model, support_img, support_mask, query_img, query_mask, grid,
 
 def train(args):
 
-    setting = f'_lora_lr_{args.lr}_task_{args.task}'
+    setting = f'_p_tuning_lr_{args.lr}_task_{args.task}'
 
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_lora_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
     eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
@@ -218,7 +238,7 @@ def train(args):
     # MAE_VQGAN model
     vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
     print(args.device)
-    vqgan.to(args.device)
+    vqgan = vqgan.to(args.device)
     # if args.vp_model == 'pad':
     #     print('load pad prompter.')
     #     VP = CustomVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr, p_eps=args.p_eps)
@@ -227,39 +247,41 @@ def train(args):
     #     VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
     # else:
     #     raise ValueError("Please check the mode of InMeMo!")
-    total_parameters_lora = 0
+    # total_parameters_lora = 0
     # tot = 0
     scaler = GradScaler()
-    for block in vqgan.blocks:
-        for layer in [block.attn.qkv, block.attn.proj]:
-            parametrize.register_parametrization(layer,"weight",linear_layer_parameterization(layer,args.device))
-            total_parameters_lora += layer.parametrizations["weight"][0].lora_A.nelement() + layer.parametrizations["weight"][0].lora_B.nelement()
-            # tot = tot +1
-            # print('layer ',tot,' lora   ',layer.parametrizations["weight"][0].lora_A.nelement(),layer.parametrizations["weight"][0].lora_B.nelement())
-            layer.parametrizations["weight"][0].enabled = True
-    # tot = 0
-    for block in vqgan.decoder_blocks:
-        for layer in [block.attn.qkv, block.attn.proj]:
-            parametrize.register_parametrization(layer,"weight",linear_layer_parameterization(layer,args.device))
-            # tot = tot +1
-            # print('layer ',tot,' lora   ',layer.parametrizations["weight"][0].lora_A.nelement(),layer.parametrizations["weight"][0].lora_B.nelement())
-            total_parameters_lora += layer.parametrizations["weight"][0].lora_A.nelement() + layer.parametrizations["weight"][0].lora_B.nelement()
-            layer.parametrizations["weight"][0].enabled = True
+    # for block in vqgan.blocks:
+    #     for layer in [block.attn.qkv, block.attn.proj]:
+    #         parametrize.register_parametrization(layer,"weight",linear_layer_parameterization(layer,args.device))
+    #         total_parameters_lora += layer.parametrizations["weight"][0].lora_A.nelement() + layer.parametrizations["weight"][0].lora_B.nelement()
+    #         # tot = tot +1
+    #         # print('layer ',tot,' lora   ',layer.parametrizations["weight"][0].lora_A.nelement(),layer.parametrizations["weight"][0].lora_B.nelement())
+    #         layer.parametrizations["weight"][0].enabled = True
+    # # tot = 0
+    # for block in vqgan.decoder_blocks:
+    #     for layer in [block.attn.qkv, block.attn.proj]:
+    #         parametrize.register_parametrization(layer,"weight",linear_layer_parameterization(layer,args.device))
+    #         # tot = tot +1
+    #         # print('layer ',tot,' lora   ',layer.parametrizations["weight"][0].lora_A.nelement(),layer.parametrizations["weight"][0].lora_B.nelement())
+    #         total_parameters_lora += layer.parametrizations["weight"][0].lora_A.nelement() + layer.parametrizations["weight"][0].lora_B.nelement()
+    #         layer.parametrizations["weight"][0].enabled = True
 
-    print('total para meter number ',total_parameters_lora)
+    # print('total para meter number ',total_parameters_lora)
     # assert False
     for _, p in vqgan.named_parameters():
         p.requires_grad = False
-    freeze_base_weights(vqgan)
+    # freeze_base_weights(vqgan)
+    p_tuning_model = PTuning()
+    p_tuning_model = p_tuning_model.to(args.device)
     best_iou = 0.
-    optimizer = torch.optim.SGD(vqgan.parameters(), lr=args.lr, weight_decay=0)
+    optimizer = torch.optim.SGD(p_tuning_model.parameters(), lr=args.lr, weight_decay=0)
     scheduler = Scheduler(args.scheduler, args.epoch).select_scheduler(optimizer)
     begin_epoch = 1
     ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
     if os.path.exists(ckpt_path):
         checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
         # state_dict = torch.load(, map_location=args.device)
-        load_lora_state_dict(vqgan,checkpoint['visual_prompt_dict'])
+        p_tuning_model.load_state_dict(checkpoint['visual_prompt_dict'])
         # vqgan.load_state_dict(checkpoint["visual_prompt_dict"])
         optimizer.load_state_dict(checkpoint['optimizer_dict'])
         begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
@@ -297,6 +319,7 @@ def train(args):
         print("lr_rate: ", optimizer.param_groups[0]["lr"])
         lr_list.append(optimizer.param_groups[0]["lr"])
         vqgan.train()
+        p_tuning_model.train()
         for i, data in enumerate(tqdm(dataloaders['train'])):
             len_dataloader = len(dataloaders['train'])
             support_img, support_mask, query_img, query_mask, grid_stack =\
@@ -315,7 +338,7 @@ def train(args):
             # vq_tokens = vq_tokens.to(args.device,dtype=torch.long)
             optimizer.zero_grad()
             with autocast():
-                loss, canvas_pred_tokens, canvas_label = model_forward(vqgan,support_img, support_mask, query_img, query_mask, grid_stack, query_img_features,support_features,args,imagenet_mean,imagenet_std)
+                loss, canvas_pred_tokens, canvas_label = model_forward(vqgan,p_tuning_model,support_img, support_mask, query_img, query_mask, grid_stack, query_img_features,support_features,args,imagenet_mean,imagenet_std)
                 # print(loss)
                 scaled_loss = scaler.scale(loss)
             if torch.isnan(loss):
@@ -328,7 +351,7 @@ def train(args):
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
 
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),p_tuning_model.to(args.device),
                                                                                      canvas_pred_tokens, canvas_label,
                                                                                      args.arr)
             for index in range(len(original_image_list)):
@@ -364,6 +387,7 @@ def train(args):
         examples_save_path = eg_save_path + f'/{setting}_{epoch}/'
         print("start_val round" + str(epoch // 1))
         vqgan.eval()
+        p_tuning_model.eval()
         os.makedirs(examples_save_path, exist_ok=True)
         with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:
             log.write(str(args) + '\n')
@@ -388,10 +412,10 @@ def train(args):
             grid_stack = grid_stack.to(args.device, dtype=torch.float32)
             # vq_tokens = vq_tokens.to(args.device,dtype=torch.long)
 
-            _, canvas_pred_tokens, canvas_label = model_forward(vqgan,support_img.unsqueeze(1), support_mask.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
+            _, canvas_pred_tokens, canvas_label = model_forward(vqgan,p_tuning_model,support_img.unsqueeze(1), support_mask.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
                                 query_img_features, support_features,args,imagenet_mean,imagenet_std)
 
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),p_tuning_model.to(args.device),
                                                                                      canvas_pred_tokens, canvas_label,
                                                                                      args.arr)
             for index in range(len(original_image_list)):
@@ -427,7 +451,7 @@ def train(args):
         # Save CKPT
         if args.vp_model == 'Prompt':
             state_dict = {
-                "visual_prompt_dict": save_lora_state_dict(vqgan),
+                "visual_prompt_dict": p_tuning_model.state_dict(),
                 "optimizer_dict": optimizer.state_dict(),
                 "epoch": epoch,
                 "best_iou": best_iou,

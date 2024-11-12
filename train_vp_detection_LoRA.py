@@ -113,7 +113,7 @@ def model_forward(model, support_img, support_mask, query_img, query_mask, grid,
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
         bz = support_features.shape[0]
-        print(support_features.shape,query_features.shape)
+        # print(support_features.shape,query_features.shape)
         canvas_pred_tokens = torch.cat((support_features,query_features),dim=2)
         canvas_pred_tokens = canvas_pred_tokens.reshape(bz,196,1024)
         grid = grid.permute(1,0,2,3,4)

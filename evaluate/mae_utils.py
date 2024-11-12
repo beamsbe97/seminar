@@ -156,7 +156,21 @@ def generate_image(orig_image, model, ids_shuffle, canvas_label, len_keep: int, 
 
     return orig_image, im_paste[0], mask
 
+@torch.no_grad()
+def generate_image_for_ptuning(orig_image, model,ptuning_model, ids_shuffle, canvas_label, len_keep: int, device: str = 'cpu'):
+    """ids_shuffle is [bs, 196]"""
+    # orig_image [1,196,1024]
+    # canvas_label [1,3,224,224]
+    canvas_temp = canvas_label.clone()
+    # print(canvas_temp.shape)
+    # print(orig_image.shape)
+    mask, orig_image, x = generate_raw_prediction_for_ptuning(device, ids_shuffle, len_keep, model,ptuning_model, orig_image)
+    canvas_temp = convert_to_tensor(canvas_temp).to(device)
+    num_patches = 14
+    y = x.argmax(dim=-1)
+    im_paste, mask, orig_image = decode_raw_predicion(mask, model, num_patches, canvas_temp, y)
 
+    return orig_image, im_paste[0], mask
 
 @torch.no_grad()
 def generate_image_zero_shot(orig_image, model, ids_shuffle, canvas_label, len_keep: int, device: str = 'cpu'):
@@ -181,6 +195,20 @@ def generate_raw_pred_for_train(orig_image, model, ids_shuffle, len_keep: int, d
     batch_size = orig_image.shape[0]
     for i in range(batch_size):
         x, mask = generate_for_training(orig_image[i], model, ids_shuffle, len_keep, device)
+        if len(x_stack) == 0:
+            x_stack = x
+        else:
+            x_stack = torch.cat((x_stack, x))
+
+    return x_stack, mask
+
+
+def generate_raw_pred_for_p_tuning(orig_image, model,p_tuning_model, ids_shuffle, len_keep: int, device: str = 'cpu'):
+    """ids_shuffle is [bs, 196]"""
+    x_stack = torch.tensor([])
+    batch_size = orig_image.shape[0]
+    for i in range(batch_size):
+        x, mask = generate_for_training_for_p_tuning(orig_image[i], model,p_tuning_model, ids_shuffle, len_keep, device)
         if len(x_stack) == 0:
             x_stack = x
         else:
@@ -264,6 +292,89 @@ def generate_raw_prediction(device, ids_shuffle, len_keep, model, orig_image):
     latent = model.norm(latent)
     x = model.decoder_embed(latent)
     # append mask tokens to sequence
+    mask_tokens = model.mask_token.repeat(
+        x.shape[0], ids_restore.shape[1] + 1 - x.shape[1], 1)
+    x_ = torch.cat([x[:, 1:, :], mask_tokens], dim=1)  # no cls token
+    x_ = torch.gather(
+        x_, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, x.shape[2]))  # unshuffle
+    x = torch.cat([x[:, :1, :], x_], dim=1)  # append cls token
+    # add pos embed
+    x = x + model.decoder_pos_embed
+    # apply Transformer blocks
+    for block_num, blk in enumerate(model.decoder_blocks):
+        # Here is unrollment of the decoder blocks:
+        x_temp = blk.norm1(x)
+        # here is an unrollment of the attention mechanism:
+        B, N, C = x_temp.shape
+        qkv = blk.attn.qkv(x_temp).reshape(
+            B, N, 3, blk.attn.num_heads, C // blk.attn.num_heads).permute(2, 0, 3, 1, 4)
+        # make torchscript happy (cannot use tensor as tuple)
+        q, k, v = qkv.unbind(0)
+        attn = (q @ k.transpose(-2, -1)) * blk.attn.scale
+        # The attention shape is [1, 16, 197, 197]
+        # This is where our code comes to mind:
+        attn = attn.softmax(dim=-1)
+
+        x_temp = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x_temp = blk.attn.proj(x_temp)
+        x_temp = blk.attn.proj_drop(x_temp)
+        # Here we continue to the orignal block.
+        x = x + blk.drop_path1(x_temp)
+
+        x = x + blk.drop_path2(blk.mlp(blk.norm2(x)))
+    x = model.decoder_norm(x)
+    # predictor projection
+    x = model.decoder_pred(x)
+    # remove cls token
+    x = x[:, 1:, :]
+    return mask, orig_image, x
+
+
+@torch.no_grad()
+def generate_raw_prediction_for_ptuning(device, ids_shuffle, len_keep, model,ptuning_model, orig_image):
+    # print("1  ",orig_image)
+    # print(orig_image.shape)
+    ids_shuffle = ids_shuffle.to(device)
+    # make it a batch-like
+    orig_image = orig_image.to(device)
+    # print("2  ",orig_image)
+    # print(orig_image.shape)
+    temp_x = orig_image.clone().detach().to(device)
+    # RUN ENCODER:
+    # embed patches
+
+    latent = (temp_x).reshape(1,196,1024)
+    # print(latent)
+    # print(latent.shape)
+    # assert False
+    # add pos embed w/o cls token
+    # latent = latent + model.pos_embed[:, 1:, :]
+    # masking: length -> length * mask_ratio
+    N, L, D = latent.shape  # batch, length, dim
+    # sort noise for each sample
+    ids_restore = torch.argsort(ids_shuffle, dim=1)
+    # print('ids_restore: ', ids_restore)
+    # keep the first subset
+    ids_keep = ids_shuffle[:, :len_keep]
+    latent = torch.gather(
+        latent, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
+    # generate the binary mask: 0 is keep, 1 is remove
+    mask = torch.ones([N, L], device=latent.device)
+    mask[:, :len_keep] = 0
+    # unshuffle to get the binary mask
+    mask = torch.gather(mask, dim=1, index=ids_restore)
+    # append cls token
+    cls_token = model.cls_token + model.pos_embed[:, :1, :]
+    cls_tokens = cls_token.expand(latent.shape[0], -1, -1)
+    latent = torch.cat((cls_tokens, latent), dim=1)
+    # apply Transformer blocks
+    latent = ptuning_model(latent)
+    for blk in model.blocks:
+        latent = blk(latent)
+    latent = model.norm(latent)
+    x = model.decoder_embed(latent)
+    # append mask tokens to sequence
+    x = x[:,20:,:]
     mask_tokens = model.mask_token.repeat(
         x.shape[0], ids_restore.shape[1] + 1 - x.shape[1], 1)
     x_ = torch.cat([x[:, 1:, :], mask_tokens], dim=1)  # no cls token
@@ -553,6 +664,70 @@ def generate_for_training(canvas_tokens, model, ids_shuffle, len_keep: int, devi
     return x, mask
 
 
+def generate_for_training_for_p_tuning(canvas_tokens, model,p_tuning_model, ids_shuffle, len_keep: int, device: str = 'cpu'):
+    """ids_shuffle is [bs, 196]"""
+    # print(canvas_tokens.shape)
+    ids_shuffle = ids_shuffle.to(device)
+    # make it a batch-like
+    x = canvas_tokens.clone()
+
+    latent = x.unsqueeze(0)
+
+    # RUN ENCODER:
+    # embed patches
+    # latent = model.patch_embed(temp_x.float())
+
+    # add pos embed w/o cls token
+    # latent = latent + model.pos_embed[:, 1:, :]
+
+    # masking: length -> length * mask_ratio
+    N, L, D = latent.shape  # batch, length, dim
+    # sort noise for each sample
+    ids_restore = torch.argsort(ids_shuffle, dim=1)
+
+    # keep the first subset
+    ids_keep = ids_shuffle[:, :len_keep]
+    latent = torch.gather(
+        latent, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
+
+    # generate the binary mask: 0 is keep, 1 is remove
+    mask = torch.ones([N, L], device=latent.device)
+    mask[:, :len_keep] = 0
+    # unshuffle to get the binary mask
+    mask = torch.gather(mask, dim=1, index=ids_restore)
+
+    # append cls token
+    cls_token = model.cls_token + model.pos_embed[:, :1, :]
+    cls_tokens = cls_token.expand(latent.shape[0], -1, -1)
+    latent = torch.cat((cls_tokens, latent), dim=1)
+    latent = p_tuning_model(latent)
+    # apply Transformer blocks
+    for blk in model.blocks:
+        latent = blk(latent)
+    latent = model.norm(latent)
+    x = model.decoder_embed(latent)
+    x = x[:,20:,:]
+    # append mask tokens to sequence
+    mask_tokens = model.mask_token.repeat(
+        x.shape[0], ids_restore.shape[1] + 1 - x.shape[1], 1)
+    x_ = torch.cat([x[:, 1:, :], mask_tokens], dim=1)  # no cls token
+    x_ = torch.gather(
+        x_, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, x.shape[2]))  # unshuffle
+    x = torch.cat([x[:, :1, :], x_], dim=1)  # append cls token
+    # add pos embed
+    x = x + model.decoder_pos_embed
+
+    # apply Transformer blocks
+    for blk in model.decoder_blocks:
+        x = blk(x)
+    x = model.decoder_norm(x)
+
+    # predictor projection
+    x = model.decoder_pred(x)
+
+    # remove cls token
+    x = x[:, 1:, :]
+    return x, mask
 def generate_for_training_zero_shot(canvas_tokens, model, ids_shuffle, len_keep: int, device: str = 'cpu'):
     """ids_shuffle is [bs, 196]"""
     # print(canvas_tokens.shape)
