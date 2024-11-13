@@ -272,7 +272,7 @@ def train(args):
             log.write(str(args) + '\n')
         image_number = 0
         epoch_loss = 0
-        if epoch%30 == 0:
+        if epoch%1 == 0:
             # Validation phase
             for i, data in enumerate(tqdm(dataloaders["val"])):
                 len_dataloader = len(dataloaders["val"])
@@ -283,14 +283,14 @@ def train(args):
                 query_img_features = query_img_features.to(args.device, dtype=torch.float32)
                 ##end my code
                 support_img, support_mask, query_img, query_mask, grid_stack = \
-                    data['support_img'], data['support_mask'], data['query_img'], data['query_mask'], data['grid_stack']
+                    data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
                 support_img = support_img.to(args.device, dtype=torch.float32)
                 support_mask = support_mask.to(args.device, dtype=torch.float32)
                 query_img = query_img.to(args.device, dtype=torch.float32)
                 query_mask = query_mask.to(args.device, dtype=torch.float32)
                 grid_stack = grid_stack.to(args.device, dtype=torch.float32)
 
-                loss, canvas_pred_tokens, canvas_label = VP(support_img.unsqueeze(1), support_mask.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
+                loss, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                                     query_img_features, support_features,True)
                 epoch_loss += loss.detach()
                 print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
