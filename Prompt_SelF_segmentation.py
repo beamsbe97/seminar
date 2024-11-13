@@ -8,7 +8,9 @@ if current_path not in sys.path:
 
 print(sys.path)
 
-from evaluate_detection.canvas_ds import CanvasDataset4Train,CanvasDataset4Val
+from trainer import train_pascal_dataloader_not_oom
+from trainer import val_pascal_dataloader_not_oom
+from trainer import train_fewshot_pascal_dataloader
 from evaluate.reasoning_dataloader import *
 import torchvision.transforms as T
 from evaluate.mae_utils import *
@@ -25,29 +27,30 @@ import torchvision.transforms.functional as TF
 import torch.nn.utils.parametrize as parametrize
 from trainer.Lora import linear_layer_parameterization,save_lora_state_dict,load_lora_state_dict,freeze_base_weights
 
-from evaluate_detection.box_ops import to_rectangle
+# from evaluate_detection.box_ops import to_rectangle
 
 def get_args():
-    parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)
+    parser = argparse.ArgumentParser('InMeMo training for segmentation', add_help=False)
     parser.add_argument('--mae_model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument("--mode", type=str, default='spimg_spmask',
                         choices=['no_vp', 'spimg_spmask', 'spimg', 'spimg_qrimg', 'qrimg', 'spimg_spmask_qrimg'],
                         help="mode of adding vp on img.")
-    parser.add_argument('--output_dir', default=f'./detection')
-    parser.add_argument('--device', default='cuda:0',
+    parser.add_argument('--output_dir', default=f'./output_samples')
+    parser.add_argument('--device', default='cuda:7',
                         help='device to use for training / testing')
-    parser.add_argument('--base_dir', default='./pascal-5i', help='pascal base dir')  # TODO: check the base dir path.
+    parser.add_argument('--base_dir', default='./pascal-5i', help='pascal base dir')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--t', default=[0, 0, 0], type=float, nargs='+')
-    parser.add_argument('--task', default='detection', choices=['segmentation', 'detection'])
+    parser.add_argument('--task', default='segmentation', choices=['segmentation', 'detection'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
     parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
     parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
-    parser.add_argument('--dataset_type', default='pascal_det',
-                        choices=['pascal', 'pascal_det'])
+    parser.add_argument('--dataset_type', default='pascal')
+    parser.add_argument('--fast', default=0, type=int)
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
+    # parser.add_argument('--temperature', default=0.1, type=float)
     parser.add_argument('--fold', default=0, type=int)
     parser.add_argument('--split', default='trn', type=str)
     parser.add_argument('--purple', default=0, type=int)
@@ -55,21 +58,26 @@ def get_args():
     parser.add_argument('--feature_name', default='features_vit-laion2b_pixel-level_trn', type=str)
     parser.add_argument('--percentage', default='', type=str)
     parser.add_argument('--cluster', action='store_true')
-    parser.add_argument('--fast', default=0, type=int)
     parser.add_argument('--random', action='store_true')
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--G_only_div', action='store_true')
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
+    parser.add_argument('--fsl', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
-    # train settings
     parser.add_argument('--sigma', default=0.1, type=float)
+
+    # training settings
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
                         help="Base learning rate for training with polynomial decay.")
     parser.add_argument("--epoch", type=int, default=100,
                         help="Number of training steps.")
+    parser.add_argument("--loss-function", type=str, default='CrossEntropy',
+                        help="loss function for training")
     parser.add_argument("--scheduler", type=str, default='cosinewarm',
                         help="scheduler for training")
     parser.add_argument("--optimizer", type=str, default='Adam',
@@ -77,34 +85,23 @@ def get_args():
     parser.add_argument("--arr", type=str, default='a1',
                         help="the setting of arrangements of canvas")
     parser.add_argument("--p-eps", type=int, default=1,
-                        help="Number of mae weight hyperparameter,[0, 1].")
+                        help="Number of pad weight hyperparameter [0, 1].")
     parser.add_argument("--vp-model", type=str, default='pad',
-                        help="pad prompter.")
+                        help="type of the VP Prompter.")
+    parser.add_argument("--loss_mean",type=int, default=1)
+    # Number of images for few-shot training
+    parser.add_argument("--n-shot", type=int, default=16,
+                        help="Number of images for fsl.")
     parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
-    parser.add_argument("--loss_mean",type=int, default=1)
-    parser.add_argument('--G_pre_mean', action='store_true')
-    parser.add_argument('--G_copy_another', action='store_true')
-    parser.add_argument('--G_only_div', action='store_true')
     parser.add_argument("--pos", type=str, default='after',
                         help="choose prompt composer")
 
     return parser
 
-def _generate_raw_prediction(model, canvas_tokens, arr,args):
-    """canvas is already in the right range."""
-    ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
-    # ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
-    # print(ids_shuffle,ids_shuffle.shape,len_keep,len_keep.shape)
-    # assert False
-    y_pred, mask = generate_raw_pred_for_train(canvas_tokens, model,
-                                                ids_shuffle.to(args.device),
-                                                len_keep, device=args.device)
-    return y_pred, mask
-
-def model_forward(model, support_img, support_mask, query_img, query_mask, grid, query_features, support_features,args,imagenet_mean, imagenet_std):
+def model_forward(grid, query_features, support_features,args,imagenet_mean, imagenet_std):
         canvas_label = grid.clone()
         canvas_return_label = grid.clone()
         if args.dataset_type != 'pascal_det':
@@ -113,23 +110,11 @@ def model_forward(model, support_img, support_mask, query_img, query_mask, grid,
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
         bz = support_features.shape[0]
-        support_features = torch.mean(support_features,dim=1)
+        K = support_features.shape[1]
+        query_features = query_features.expand(-1, K, -1, -1)
         # print(support_features.shape,query_features.shape)
-        canvas_pred_tokens = torch.cat((support_features,query_features.reshape(bz,98,1024)),dim=1)
-        canvas_pred_tokens = canvas_pred_tokens.reshape(bz,196,1024)
-        grid = grid.permute(1,0,2,3,4)
-        grid = grid[0]
-        # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
-        y_pred, mask = _generate_raw_prediction(model,canvas_pred_tokens, args.arr,args)
-        canvas_label = canvas_label.permute(1,0,2,3,4)
-        if args.dataset_type != 'pascal_det':
-            canvas_label = (canvas_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-        N = canvas_label.shape[0]
+        canvas_pred_tokens = torch.cat((support_features,query_features),dim=2).permute(1,0,2,3)
         loss_ce = 0
-        # print("y_pred min:", y_pred.min().item(), "y_pred max:", y_pred.max().item())
-        
-        loss_ce = model.forward_loss(canvas_label[0],y_pred,mask)
-
         return loss_ce, canvas_pred_tokens, canvas_return_label
 
 # def forward(model, support_img, support_mask, query_img, query_mask, grid, imagenet_mean, imagenet_std):
@@ -170,21 +155,14 @@ def train(args):
     mask_transform = T.Compose(
         [T.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
          T.ToTensor()])
-
-    train_dataset = {
-        'pascal_det': CanvasDataset4Train
-    }[args.dataset_type](args.base_dir,simidx=args.simidx, fold=args.fold, split=args.split, image_transform=image_transform,
-                         mask_transform=mask_transform, flipped_order=args.flip, purple=args.purple,
-                         random=args.random, cluster=args.cluster, feature_name=args.feature_name,args=args,
-                         percentage=args.percentage, seed=args.seed, mode=args.mode, arr=args.arr)
-
+    
     val_dataset = {
-        'pascal_det': CanvasDataset4Val
-    }[args.dataset_type](args.base_dir,simidx=args.simidx, fold=args.fold, split=args.split, image_transform=image_transform,
+        'pascal': val_pascal_dataloader_not_oom.DatasetPASCAL,
+    }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
                          mask_transform=mask_transform,
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
-                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,args=args,
-                         arr=args.arr)
+                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
+                         arr=args.arr,simidx=args.simidx)
     print('number of val demonstation',args.simidx)
     print('length of val dataset: ', len(val_dataset))
 
@@ -192,9 +170,7 @@ def train(args):
 
     # set batch size to 1/2 on val set to adapt GPU memory.修改了
     dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-    print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))
 
     print("load data over")
@@ -280,80 +256,7 @@ def train(args):
         print("lr_rate: ", optimizer.param_groups[0]["lr"])
         lr_list.append(optimizer.param_groups[0]["lr"])
         vqgan.train()
-        for i, data in enumerate(tqdm(dataloaders['train'])):
-            len_dataloader = len(dataloaders['train'])
-            support_img, support_mask, query_img, query_mask, grid_stack =\
-                data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
-            support_features = data['support_features']
-            # print("pre    ",support_features[0][0])
-            query_img_features = data['query_img_features']
-            # vq_tokens = data['vq_tokens']
-            support_features = support_features.to(args.device, dtype=torch.float32)
-            query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-            support_img = support_img.to(args.device, dtype=torch.float32)
-            support_mask = support_mask.to(args.device, dtype=torch.float32)
-            query_img = query_img.to(args.device, dtype=torch.float32)
-            query_mask = query_mask.to(args.device, dtype=torch.float32)
-            grid_stack = grid_stack.to(args.device, dtype=torch.float32)
-            # vq_tokens = vq_tokens.to(args.device,dtype=torch.long)
-            optimizer.zero_grad()
-            with autocast():
-                loss, canvas_pred_tokens, canvas_label = model_forward(vqgan,support_img, support_mask, query_img, query_mask, grid_stack, query_img_features,support_features,args,imagenet_mean,imagenet_std)
-                # print(loss)
-                # scaled_loss = scaler.scale(loss)
-            if torch.isnan(loss):
-                raise ValueError("nan error!")
-
-            # scaled_loss.backward()
-            # scaler.step(optimizer)
-            # scaler.update()
-            # scaler.update()
-            epoch_loss += loss.detach()
-            print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
-
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                     canvas_pred_tokens, canvas_label,
-                                                                                     args.arr)
-            for index in range(len(original_image_list)):
-
-                    sub_image = generated_result_list[index][113:, 113:]
-                    sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
-                    generated_result_list[index][113:, 113:] = sub_image
-
-                    original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                    generated_result = generated_result_list[index]
-                    if args.task == 'detection':
-                        generated_result = to_rectangle(generated_result)
-                    # if index == 0:
-                    #     image = TF.to_pil_image(generated_result_list[0])
-
-                    #     # # 保存图像
-                    #     image.save("result.jpg")
-                    # #    print(generated_result.shape)
-                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("final_result.jpg")
-                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("original_image.jpg")
-                    current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                    # print(current_metric)
-                    for i, j in current_metric.items():
-                        train_eval_dict[i] += (j / len(train_dataset))
-            # assert False
-        print('val metric: {}'.format(train_eval_dict))
-        train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-
-        scheduler.step()
-
-        average_epoch_loss = epoch_loss / len_dataloader
-        if average_epoch_loss <= min_loss:
-            min_loss = average_epoch_loss
-
-        print('epoch: {}, loss: {:.2f}'.format(epoch, average_epoch_loss))
-        print('min loss: {:.2f}'.format(min_loss))
-
-
+        
         examples_save_path = eg_save_path + f'/{setting}_{epoch}/'
         print("start_val round" + str(epoch // 1))
         vqgan.eval()
@@ -381,21 +284,35 @@ def train(args):
             grid_stack = grid_stack.to(args.device, dtype=torch.float32)
             # vq_tokens = vq_tokens.to(args.device,dtype=torch.long)
 
-            _, canvas_pred_tokens, canvas_label = model_forward(vqgan,support_img, support_mask, query_img, query_mask, grid_stack, 
+            _, canvas_pred_tokens, canvas_label = model_forward( grid_stack, 
                                 query_img_features, support_features,args,imagenet_mean,imagenet_std)
+            original_image_list = []
+            for sub_pred_tokens in canvas_pred_tokens:
+                sub_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+                                                                                        sub_pred_tokens, canvas_label,
+                                                                                        args.arr)
+                original_image_list.append(sub_image_list)
 
-            original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                     canvas_pred_tokens, canvas_label,
-                                                                                     args.arr)
-            for index in range(len(original_image_list)):
+            num_sub_image_lists = len(original_image_list)  # 16
+            num_images_per_sub_image_list = len(original_image_list[0])  # 8
+            average_image_list = [np.zeros_like(original_image_list[0][0], dtype=np.float32) for _ in range(num_images_per_sub_image_list)]
+            for sub_image_list in original_image_list:
+                for i, img in enumerate(sub_image_list):
+                    average_image_list[i] += img
+            for i in range(num_images_per_sub_image_list):
+                average_image_list[i] /= num_sub_image_lists
+            average_image_list = [np.clip(img, 0, 255).astype(np.uint8) for img in average_image_list]
+
+            
+            for index in range(len(average_image_list)):
                 sub_image = generated_result_list[index][113:, 113:]
                 sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
                 generated_result_list[index][113:, 113:] = sub_image
 
-                original_image = round_image(original_image_list[index], [WHITE, BLACK])
+                original_image = round_image(average_image_list[index], [WHITE, BLACK])
                 generated_result = generated_result_list[index]
-                if args.task == 'detection':
-                    generated_result = to_rectangle(generated_result)
+                # if args.task == 'detection':
+                #     generated_result = to_rectangle(generated_result)
                 if args.save_examples:
                     Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                         examples_save_path + f'generated_image_{image_number}.png')
@@ -424,28 +341,6 @@ def train(args):
         print('val metric: {}'.format(eval_dict))
         with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
             log.write('all\t' + str(eval_dict) + '\n')
-
-        # Save CKPT
-        if args.vp_model == 'Prompt':
-            state_dict = {
-                "visual_prompt_dict": save_lora_state_dict(vqgan),
-                "optimizer_dict": optimizer.state_dict(),
-                "epoch": epoch,
-                "best_iou": best_iou,
-                "scheduler_dict": scheduler.state_dict(),
-                "scaler_dict": scaler.state_dict(),
-            }
-        if eval_dict['iou'] > best_iou:
-            best_iou = eval_dict['iou']
-            state_dict['best_iou'] = best_iou
-            torch.save(state_dict, os.path.join(model_save_path, 'best.pth'))
-        torch.save(state_dict, os.path.join(model_save_path, 'ckpt.pth'))
-        print('best iou: ', best_iou)
-        val_iou_list.append(eval_dict['iou'])
-        print('lr list: ', lr_list)
-        print('val iou list: ', val_iou_list)
-        with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-            log.write('best\t' + str(best_iou) + '\n')
         
 if __name__ == '__main__':
     if mp.get_start_method(allow_none=True) != 'spawn':
