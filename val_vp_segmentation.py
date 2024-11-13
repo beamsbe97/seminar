@@ -15,55 +15,81 @@ from evaluate_detection.voc_orig import CLASS_NAMES
 
 
 def get_args():
-    parser = argparse.ArgumentParser('InMeMo inference for segmentation', add_help=False)
+    parser = argparse.ArgumentParser('InMeMo training for segmentation', add_help=False)
     parser.add_argument('--mae_model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument("--mode", type=str, default='spimg_spmask',
                         choices=['no_vp', 'spimg_spmask', 'spimg', 'spimg_qrimg', 'qrimg', 'spimg_spmask_qrimg'],
-                        help="mode of adding visual prompt on img.")
-    parser.add_argument('--output_dir', default=f'./output_samples/')
-    parser.add_argument('--device', default='cuda:0',
+                        help="mode of adding vp on img.")
+    parser.add_argument('--output_dir', default=f'./output_samples')
+    parser.add_argument('--device', default='cuda:7',
                         help='device to use for training / testing')
     parser.add_argument('--base_dir', default='./pascal-5i', help='pascal base dir')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--t', default=[0, 0, 0], type=float, nargs='+')
     parser.add_argument('--task', default='segmentation', choices=['segmentation', 'detection'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
+    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
     parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
-    parser.add_argument('--dataset_type', default='pascal',
-                        choices=['pascal', 'pascal_det'])
-    parser.add_argument('--fold', default=3, type=int)
+    parser.add_argument('--dataset_type', default='pascal')
+    parser.add_argument('--simidx', default=1, type=int)
+    parser.add_argument('--dropout', default=0.3, type=float)
+    # parser.add_argument('--temperature', default=0.1, type=float)
+    parser.add_argument('--fold', default=0, type=int)
     parser.add_argument('--split', default='trn', type=str)
     parser.add_argument('--purple', default=0, type=int)
     parser.add_argument('--flip', default=0, type=int)
-    parser.add_argument('--dropout', default=0.3, type=float)
     parser.add_argument('--feature_name', default='features_vit-laion2b_pixel-level_trn', type=str)
     parser.add_argument('--percentage', default='', type=str)
     parser.add_argument('--cluster', action='store_true')
     parser.add_argument('--random', action='store_true')
-    parser.add_argument('--ensemble', action='store_true')
-    parser.add_argument('--simidx', default=1, type=int)
-    parser.add_argument("--p-eps", type=int, default=1,
-                        help="Number of mae weight hyperparameter,[0, 1].")
-    parser.add_argument("--batch-size", type=int, default=16,
-                        help="Number of images sent to the network in one step.")
-    parser.add_argument("--arr", type=str, default='a1',
-                        help="the setting of arrangements of canvas")
-    parser.add_argument("--vp_model", type=str, default='pad',  #  ['pad']
-                        help="pad prompter")
     parser.add_argument('--G_pre_mean', action='store_true')
     parser.add_argument('--G_copy_another', action='store_true')
     parser.add_argument('--G_only_div', action='store_true')
-    parser.add_argument('--save_model_path',
-                        help='model checkpoint')
+    parser.add_argument('--ensemble', action='store_true')
+    parser.add_argument('--aug', action='store_true')
+    parser.add_argument('--fsl', action='store_true')
+    parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
     parser.add_argument('--sigma', default=0.1, type=float)
-    parser.add_argument("--choice", type=str, default='Zero',
+
+    # training settings
+    parser.add_argument("--batch-size", type=int, default=32,
+                        help="Number of images sent to the network in one step.")
+    parser.add_argument("--lr", type=float, default=40,
+                        help="Base learning rate for training with polynomial decay.")
+    parser.add_argument("--epoch", type=int, default=100,
+                        help="Number of training steps.")
+    parser.add_argument("--loss-function", type=str, default='CrossEntropy',
+                        help="loss function for training")
+    parser.add_argument("--scheduler", type=str, default='cosinewarm',
+                        help="scheduler for training")
+    parser.add_argument("--optimizer", type=str, default='Adam',
+                        help="optimizer for training")
+    parser.add_argument("--arr", type=str, default='a1',
+                        help="the setting of arrangements of canvas")
+    parser.add_argument("--p-eps", type=int, default=1,
+                        help="Number of pad weight hyperparameter [0, 1].")
+    parser.add_argument("--vp-model", type=str, default='pad',
+                        help="type of the VP Prompter.")
+    parser.add_argument("--loss_mean",type=int, default=1)
+    # Number of images for few-shot training
+    parser.add_argument("--n-shot", type=int, default=16,
+                        help="Number of images for fsl.")
+    parser.add_argument("--choice", type=str, default='Conv',
                         help="choose prompt composer")
     parser.add_argument('--align_s',type=int, default=1)
-    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
-    parser.add_argument('--align_q',type=int, default=1)
-    parser.add_argument("--loss_mean",type=int, default=1)
+    parser.add_argument('--align_q',type=int, default=0)
+    parser.add_argument('--kernel_size', default=7, type=int)
+    parser.add_argument("--loss_choice", type=str, default='cos',
+                        help="choose prompt composer")
+    parser.add_argument("--lamba", type=float, default='0.6',
+                        help="choose prompt composer")
+    parser.add_argument("--pos", type=str, default='after',
+                        help="choose prompt composer")
+    parser.add_argument('--save_model_path',
+                        help='model checkpoint')
+
     return parser
 
 
@@ -94,15 +120,15 @@ def test_for_generate_results(args):
     # MAE_VQGAN model
     vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
 
-    if args.vp_model == 'prompt':
+    if args.vp_model == 'Prompt':
         print('load pad prompter.')
         VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
     else:
         raise ValueError("No VP model is loaded, Please use 'pad'")
 
     if args.mode != 'no_vp':
-        state_dict = torch.load(args.save_model_path, map_location='cuda:0')
-        VP.PromptGenerator.load_state_dict(state_dict["visual_prompt_dict"])
+        checkpoint = torch.load(args.save_model_path,map_location=args.device)
+        VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
 
         VP.eval()
         VP.to(args.device)

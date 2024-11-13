@@ -191,13 +191,13 @@ class PromptGeneratorConv(nn.Module):
         cosine_loss_msk = F.cosine_embedding_loss(query_features_mask.reshape(batchsize*49,1024),attn_out2.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
         # l1_loss_img = F.l1_loss(query_features_img, attn_out1)
         # l1_loss_msk = F.l1_loss(query_features_mask, attn_out2)
-        l2_loss_img = F.mse_loss(query_features_img, attn_out1)
-        l2_loss_msk = F.mse_loss(query_features_mask, attn_out2)
+        # l2_loss_img = F.mse_loss(query_features_img, attn_out1)
+        # l2_loss_msk = F.mse_loss(query_features_mask, attn_out2)
 
         # loss = cosine_loss_img+cosine_loss_msk+l1_loss_img+l1_loss_msk
-        # loss = cosine_loss_img+cosine_loss_msk
+        loss = cosine_loss_img+cosine_loss_msk
         # loss = l1_loss_img+l1_loss_msk
-        loss = l2_loss_img + l2_loss_msk
+        # loss = l2_loss_img + l2_loss_msk
         support_tokens = torch.cat((attn_out1,attn_out2),dim=2)
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)

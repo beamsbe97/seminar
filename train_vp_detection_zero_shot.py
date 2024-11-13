@@ -1,8 +1,7 @@
 import os.path
 from tqdm import tqdm
-from trainer import train_pascal_dataloader_zero_shot
-from trainer import val_pascal_dataloader_zero_shot
-from trainer import train_fewshot_pascal_dataloader
+from evaluate_detection.canvas_ds_zero_shot import CanvasDataset4Train,CanvasDataset4Val
+
 from evaluate.reasoning_dataloader import *
 import torchvision.transforms as T
 from evaluate.mae_utils import *
@@ -16,6 +15,7 @@ from models.prompt_generator_test_zero_shot import PromptGenerator
 from models.train_models_test_zero_shot import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
+from evaluate_detection.box_ops import to_rectangle
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for segmentation', add_help=False)
@@ -30,11 +30,12 @@ def get_args():
     parser.add_argument('--base_dir', default='./pascal-5i', help='pascal base dir')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--t', default=[0, 0, 0], type=float, nargs='+')
-    parser.add_argument('--task', default='segmentation', choices=['segmentation', 'detection'])
+    parser.add_argument('--task', default='detection', choices=['segmentation', 'detection'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
     parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
     parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
-    parser.add_argument('--dataset_type', default='pascal')
+    parser.add_argument('--dataset_type', default='pascal_det',
+                        choices=['pascal', 'pascal_det'])  
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
     # parser.add_argument('--temperature', default=0.1, type=float)
@@ -103,32 +104,20 @@ def train(args):
         [T.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
          T.ToTensor()])
 
-    if args.fsl:
-        train_dataset = {
-            'pascal': train_fewshot_pascal_dataloader.DatasetPASCAL,
-        }[args.dataset_type](args.base_dir, fold=args.fold, split=args.split,
-                             image_transform=image_transform,
-                             mask_transform=mask_transform,
-                             flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
-                             feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                             arr=args.arr, n_shot=args.n_shot,simidx=args.simidx)
-    else:
-        train_dataset = {
-            'pascal': train_pascal_dataloader_zero_shot.DatasetPASCAL,
-        }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
-                             mask_transform=mask_transform,
-                             flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
-                             feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                             arr=args.arr,simidx=args.simidx)
-
+    train_dataset = {
+        'pascal_det': CanvasDataset4Train
+    }[args.dataset_type](args.base_dir,simidx=args.simidx, fold=args.fold, split=args.split, image_transform=image_transform,
+                         mask_transform=mask_transform, flipped_order=args.flip, purple=args.purple,
+                         random=args.random, cluster=args.cluster, feature_name=args.feature_name,args=args,
+                         percentage=args.percentage, seed=args.seed, mode=args.mode, arr=args.arr)
 
     val_dataset = {
-        'pascal': val_pascal_dataloader_zero_shot.DatasetPASCAL,
-    }[args.dataset_type](args.base_dir, args=args, fold=args.fold, split=args.split, image_transform=image_transform,
+        'pascal_det': CanvasDataset4Val
+    }[args.dataset_type](args.base_dir,simidx=args.simidx, fold=args.fold, split=args.split, image_transform=image_transform,
                          mask_transform=mask_transform,
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
-                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
-                         arr=args.arr,simidx=args.simidx)
+                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,args=args,
+                         arr=args.arr)
     print('number of val demonstation',args.simidx)
     print('length of val dataset: ', len(val_dataset))
 
@@ -236,22 +225,31 @@ def train(args):
                                                                                         canvas_pred_tokens, canvas_label,
                                                                                         args.arr)
                 for index in range(len(original_image_list)):
+                    sub_image = generated_result_list[index][113:, 113:]
+                    sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
+                    generated_result_list[index][113:, 113:] = sub_image
+
                     original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                    
-                    generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
+                    generated_result = generated_result_list[index]
+                    if args.task == 'detection':
+                        generated_result = to_rectangle(generated_result)
                     # if index == 0:
                     #     image = TF.to_pil_image(generated_result_list[0])
-                    #      # # 保存图像
+
+                    #     # # 保存图像
                     #     image.save("result.jpg")
+                    # #    print(generated_result.shape)
                     #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
+                    #     # # 保存图像
                     #     image.save("final_result.jpg")
                     #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
+                    #     # # 保存图像
                     #     image.save("original_image.jpg")
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                    print(current_metric['iou'])
+                    # print(current_metric)
                     for i, j in current_metric.items():
                         train_eval_dict[i] += (j / len(train_dataset))
-                # assert False
+                    # assert False
         if epoch%30 == 0:
             print('val metric: {}'.format(train_eval_dict))
             train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
@@ -301,14 +299,21 @@ def train(args):
                                                                                         canvas_pred_tokens, canvas_label,
                                                                                         args.arr)
                 for index in range(len(original_image_list)):
-                    if args.save_examples:
-                        Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
+                    sub_image = generated_result_list[index][113:, 113:]
+                    sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
+                    generated_result_list[index][113:, 113:] = sub_image
+
                     original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                    generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
+                    generated_result = generated_result_list[index]
+                    if args.task == 'detection':
+                        generated_result = to_rectangle(generated_result)
+                    if args.save_examples:
+                        Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
+                            examples_save_path + f'generated_image_{image_number}.png')
                     # if index == 0:
                     #     image = TF.to_pil_image(generated_result_list[0])
 
-                    #      # # 保存图像
+                    #     # # 保存图像
                     #     image.save("result.jpg")
                     # #    print(generated_result.shape)
                     #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
@@ -317,8 +322,8 @@ def train(args):
                     #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
                     #     # # 保存图像
                     #     image.save("original_image.jpg")
+
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                    
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')
                     image_number += 1
