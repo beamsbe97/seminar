@@ -56,10 +56,10 @@ def get_annotated_image(img, boxes, border_width=3, mode='draw', bgcolor='white'
 
     return image_copy
 
-vq_ckpt_dir = './VisualICL/weights/vqgan'
+vq_ckpt_dir = '/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL/weights/vqgan'
 
 
-def load_maevq(chkpt_dir = './VisualICL/weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
+def load_maevq(chkpt_dir = '/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL/weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
     #vq = prepare_model(args.ckpt, arch=args.mae_model)
     # build model
     model = getattr(models_mae, arch)(vq_ckpt_dir)
@@ -78,10 +78,10 @@ sys.stdout.flush()
 model = load_maevq()
 model = model.eval()
 model = model.cuda()
-features_dir = f"./VisualICL/pascal-5i/VOC2012/{features_name}_support_all_detection"
+features_dir = f"/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL/pascal-5i/VOC2012/{features_name}_support_all_detection"
 if not os.path.exists(features_dir):
     os.makedirs(features_dir)
-pascal_path='./VisualICL/pascal-5i'
+pascal_path='/mnt/dolphinfs/ssd_pool/docker/user/hadoop-aipnlp/wangjinpeng08/tianci/VisualICL/pascal-5i'
 years=("2012",)
 
 eval_support = VOCDetection4Val(pascal_path, years, image_sets=['train'], transforms=None,keep_single_objs_only=1, filter_by_mask_size=1)
@@ -104,7 +104,7 @@ print(len(train_support.images))
 # print(len(eval_query.images))
 # print(len(train_query.images))
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 img_global_features = torch.tensor([]).cuda()
 
