@@ -145,7 +145,7 @@ def model_forward(grid, query_features, support_features,args,imagenet_mean, ima
 
 def train(args):
 
-    setting = f'_w/o_composer_fusion_lr_{args.lr}_task_{args.task}'
+    setting = f'_Prompt_self_fusion_lr_{args.lr}_task_{args.task}'
 
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_lora_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
     eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
@@ -305,14 +305,16 @@ def train(args):
             for i in range(num_images_per_sub_image_list):
                 average_image_list[i] /= num_sub_image_lists
             average_image_list = [np.clip(img, 0, 255).astype(np.uint8) for img in average_image_list]
-
+            tep_list = average_image_list
+            original_image_list = generated_result_list
+            generated_result_list = average_image_list
             
-            for index in range(len(average_image_list)):
+            for index in range(len(original_image_list)):
                 sub_image = generated_result_list[index][113:, 113:]
                 sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
                 generated_result_list[index][113:, 113:] = sub_image
 
-                original_image = round_image(average_image_list[index], [WHITE, BLACK])
+                original_image = round_image(original_image_list[index], [WHITE, BLACK])
                 generated_result = generated_result_list[index]
                 if args.task == 'detection':
                     generated_result = to_rectangle(generated_result)

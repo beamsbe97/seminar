@@ -413,6 +413,9 @@ def train(args):
                 #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
                 #     # # 保存图像
                 #     image.save("original_image.jpg")
+                print(original_image.dtype,original_image.shape)
+                print(generated_result.dtype,generated_result.shape)
+
                 current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                 
                 with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
