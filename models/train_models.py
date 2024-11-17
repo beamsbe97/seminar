@@ -200,10 +200,10 @@ class PGVP(nn.Module):
 
         return y_pred, mask
 
-    def forward(self, support_img, support_mask, query_img, query_mask, grid, query_features, support_features):
+    def forward(self, support_img, support_mask, query_img, query_mask, grid, query_features, support_features, flag = False):
         canvas_label = grid.clone()
         canvas_return_label = grid.clone()
-        if self.args.dataset_type != 'pascal_det':
+        if self.args.dataset_type != 'pascal_det' or flag == True:
             canvas_return_label = (canvas_return_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
 
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
@@ -220,7 +220,7 @@ class PGVP(nn.Module):
         # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
         y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
         canvas_label = canvas_label.permute(1,0,2,3,4)
-        if self.args.dataset_type != 'pascal_det':
+        if self.args.dataset_type != 'pascal_det' or flag == True:
             canvas_label = (canvas_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
         N = canvas_label.shape[0]
         loss_ce = 0

@@ -322,7 +322,7 @@ def train(args):
                 grid_stack = grid_stack.to(args.device, dtype=torch.float32)
 
                 _, canvas_pred_tokens, canvas_label = VP(support_img.unsqueeze(1), support_mask.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
-                                query_img_features,support_features)
+                                query_img_features,support_features,True)
                 
 
                 original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
@@ -353,7 +353,7 @@ def train(args):
                     #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
                     #     # # 保存图像
                     #     image.save("original_image.jpg")
-
+                    generated_result = torch.tensor(generated_result, dtype=torch.int64)
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')
