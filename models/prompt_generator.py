@@ -92,10 +92,25 @@ class PromptGeneratorlimzero(nn.Module):
         attn_out2 = attn_out2.reshape(batchsize,7,7,1024)
         query_features_img = query_features_img.reshape(batchsize,7,7,1024)
         query_features_mask = query_features_mask.reshape(batchsize,7,7,1024)
+        loss = 0
+        if self.args.loss_choice == 'cos':
+            cosine_loss_img = F.cosine_embedding_loss(query_features_img.reshape(batchsize*49,1024),attn_out1.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
+            cosine_loss_msk = F.cosine_embedding_loss(query_features_mask.reshape(batchsize*49,1024),attn_out2.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
+            loss = cosine_loss_img+cosine_loss_msk
+        if self.args.loss_choice == 'l1':
+            l1_loss_img = F.l1_loss(query_features_img, attn_out1)
+            l1_loss_msk = F.l1_loss(query_features_mask, attn_out2)
+            loss = l1_loss_img+l1_loss_msk
+        if self.args.loss_choice == 'l2':
+            l2_loss_img = F.mse_loss(query_features_img, attn_out1)
+            l2_loss_msk = F.mse_loss(query_features_mask, attn_out2)
+            loss = l2_loss_img + l2_loss_msk
         support_tokens = torch.cat((attn_out1,attn_out2),dim=2)
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
-        return canvas_tokens
+        loss = loss * self.args.lamba
+
+        return canvas_tokens,loss
 
 class PromptGeneratorConv(nn.Module):
     def __init__(self,args,dropout = 0,kernel_size = 3):
