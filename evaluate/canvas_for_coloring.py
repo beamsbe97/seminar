@@ -44,7 +44,7 @@ class DatasetColorization(Dataset):
         self.support_feature_for_train_path = f'{datapath}/features_vit-laion2b_pixel-level_trn/folder_support_features_by_vqgan_encoder.h5df'
         # self.cache= {}
     def __len__(self):
-        return 50000
+        return 6000
 
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:

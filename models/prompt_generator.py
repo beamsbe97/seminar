@@ -11,8 +11,7 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from omegaconf import OmegaConf
 import torch.nn.functional as F
-
-
+import global_var
 class PromptGeneratorlimzero(nn.Module):
     def __init__(self,args,dropout = 0):
         super().__init__()
@@ -109,7 +108,6 @@ class PromptGeneratorlimzero(nn.Module):
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
         loss = loss * self.args.lamba
-
         return canvas_tokens,loss
 
 class PromptGeneratorConv(nn.Module):
@@ -171,7 +169,7 @@ class PromptGeneratorConv(nn.Module):
         qss = support_features.reshape(batchsize*N,98,1024)
         if self.args.align_s:
             qss_layer_norm = self.Layer_norm(qss)
-            ats_ans,_ = self.SelfAttention_S(qss_layer_norm,qss_layer_norm,qss_layer_norm)
+            ats_ans,global_var.self_attn_weight = self.SelfAttention_S(qss_layer_norm,qss_layer_norm,qss_layer_norm)
             support_features = qss + ats_ans #[B*N,98,1024]
         else :
             support_features = qss
@@ -219,6 +217,8 @@ class PromptGeneratorConv(nn.Module):
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
         loss = loss * self.args.lamba
+        global_var.cross_attn_weight = attn_weight
+
         return canvas_tokens,loss
 
 

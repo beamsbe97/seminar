@@ -10,7 +10,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from evaluate.canvas_for_coloring import DatasetColorization
 import torch.multiprocessing as mp
-from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
+from models.train_models import _generate_gt_result_for_canvas, PGVP, Scheduler
 import torchvision.transforms.functional as TF
 
 def get_args():
@@ -138,8 +138,8 @@ def test_for_generate_results(args):
         VP.eval()
         VP.to(args.device)
 
-    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
-    eg_save_path = f'{args.output_dir}/{args.vp_model}_output_examples/'
+    setting = f'gt_{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
+    eg_save_path = f'{args.output_dir}/gt_{args.vp_model}_output_examples/'
     os.makedirs(eg_save_path, exist_ok=True)
 
     print(f'This is the mode of {args.mode}.')
@@ -187,12 +187,12 @@ def test_for_generate_results(args):
         # image = TF.to_pil_image(canvas_label[0])
         #              # # 保存图像
         # image.save("debug.jpg")
-        original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                canvas_pred_tokens, canvas_label,
-                                                                                args.arr)
+        # original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+        #                                                                         canvas_pred_tokens, canvas_label,
+        #                                                                         args.arr)
         # assert False
 
-        original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+        original_image_list, generated_result_list = _generate_gt_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
             # Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')

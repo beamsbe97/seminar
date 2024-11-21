@@ -1,5 +1,5 @@
 import os.path
-from tqdm import trange, tqdm
+from tqdm import tqdm
 from evaluate.reasoning_dataloader import *
 import torchvision
 from evaluate.mae_utils import *
@@ -8,29 +8,31 @@ from pathlib import Path
 from evaluate.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
-from evaluate.canvas_for_coloring import DatasetColorization
+from evaluate_detection.canvas_ds import CanvasDataset4Val
 import torch.multiprocessing as mp
-from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
+from models.train_models import PGVP, _generate_gt_result_for_canvas
+from evaluate_detection.box_ops import to_rectangle
+from evaluate_detection.voc_orig import CLASS_NAMES
 import torchvision.transforms.functional as TF
-
 def get_args():
-    parser = argparse.ArgumentParser('InMeMo training for coloring', add_help=False)
+    parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)
     parser.add_argument('--mae_model', default='mae_vit_large_patch16', type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument("--mode", type=str, default='spimg_spmask',
                         choices=['no_vp', 'spimg_spmask', 'spimg', 'spimg_qrimg', 'qrimg', 'spimg_spmask_qrimg'],
                         help="mode of adding vp on img.")
-    parser.add_argument('--output_dir', default=f'./coloring')
+    parser.add_argument('--output_dir', default=f'./detection')
     parser.add_argument('--device', default='cuda:0',
                         help='device to use for training / testing')
-    parser.add_argument('--base_dir', default='./imagenet', help='imagenet base dir')  # TODO: check the base dir path.
+    parser.add_argument('--base_dir', default='./pascal-5i', help='pascal base dir')  # TODO: check the base dir path.
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--t', default=[0, 0, 0], type=float, nargs='+')
-    parser.add_argument('--task', default='coloring', choices=['segmentation', 'detection','coloring'])
+    parser.add_argument('--task', default='detection', choices=['segmentation', 'detection'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
+    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
     parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
-    parser.add_argument('--dataset_type', default='image_net',
-                        choices=['image_net'])
+    parser.add_argument('--dataset_type', default='pascal_det',
+                        choices=['pascal', 'pascal_det'])
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
     parser.add_argument('--fold', default=0, type=int)
@@ -43,11 +45,12 @@ def get_args():
     parser.add_argument('--random', action='store_true')
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
+    parser.add_argument('--kernel_size',default=7,type=int)
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    parser.add_argument('--sigma', default=0.1, type=float)
-
+    # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
     # train settings
+    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -64,57 +67,49 @@ def get_args():
                         help="Number of mae weight hyperparameter,[0, 1].")
     parser.add_argument("--vp-model", type=str, default='pad',
                         help="pad prompter.")
-    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
-    parser.add_argument("--to_device", type=str, default='cuda:0',
-                        help="cuda:?")
-    parser.add_argument('--align_s',type=int, default=1)
-    parser.add_argument('--align_q',type=int, default=1)
-    parser.add_argument("--loss_mean",type=int, default=1)
-    parser.add_argument('--save_model_path',
-                        help='model checkpoint')
     parser.add_argument("--choice", type=str, default='Conv',
                         help="choose prompt composer")
+    parser.add_argument('--align_s',type=int, default=1)
+    parser.add_argument('--align_q',type=int, default=0)
+    parser.add_argument("--loss_mean",type=int, default=1)
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--save_model_path',
+                        help='model checkpoint')
 
-    parser.add_argument('--kernel_size', default=7, type=int)
+    parser.add_argument('--G_only_div', action='store_true')
     parser.add_argument("--loss_choice", type=str, default='cos',
                         help="choose prompt composer")
     parser.add_argument("--lamba", type=float, default='0.6',
                         help="choose prompt composer")
     parser.add_argument("--pos", type=str, default='after',
                         help="choose prompt composer")
-    parser.add_argument('--G_pre_mean', action='store_true')
-    parser.add_argument('--G_copy_another', action='store_true')
-    parser.add_argument('--G_only_div', action='store_true')
-
     return parser
-def calculate_mse(target, ours):
-    ours = (np.transpose(ours/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-    target = (np.transpose(target/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-
-    target = target[:, 113:, 113:]
-    ours = ours[:, 113:, 113:]
-    mse = np.mean((target - ours)**2)
-    return {'mse': mse}
-def convert_to_rgb(image):
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
-    return image
 
 def test_for_generate_results(args):
+
+    # setting = f'_lr_{args.lr}_task_{args.task}'
+    # # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
+    # task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
+    # key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    # model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
+    # eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
+
     padding = 1
     image_transform = torchvision.transforms.Compose(
         [torchvision.transforms.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
-         convert_to_rgb,
          torchvision.transforms.ToTensor()])
     mask_transform = torchvision.transforms.Compose(
         [torchvision.transforms.Resize((224 // 2 - padding, 224 // 2 - padding), 3),
-         convert_to_rgb,
          torchvision.transforms.ToTensor()])
 
     val_dataset = {
-        'image_net': DatasetColorization
-    }[args.dataset_type](args.base_dir, image_transform, mask_transform,split='val',simidx=args.simidx,to_device=args.to_device)
-
+        'pascal_det': CanvasDataset4Val
+    }[args.dataset_type](args.base_dir,simidx=args.simidx, fold=args.fold, split=args.split, image_transform=image_transform,
+                         mask_transform=mask_transform,
+                         flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
+                         feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,args=args,
+                         arr=args.arr)
     dataloaders = {}
     dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
@@ -132,20 +127,20 @@ def test_for_generate_results(args):
         raise ValueError("Please check the mode of InMeMo!")
 
     if args.mode != 'no_vp':
-        state_dict = torch.load(args.save_model_path, map_location='cuda:0')
-        VP.PromptGenerator.load_state_dict(state_dict["visual_prompt_dict"])
+        checkpoint = torch.load(args.save_model_path,map_location=args.device)
+        VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
 
         VP.eval()
         VP.to(args.device)
 
-    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
-    eg_save_path = f'{args.output_dir}/{args.vp_model}_output_examples/'
+    setting = f'gt_{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
+    eg_save_path = f'{args.output_dir}/gt_{args.vp_model}_output_examples/'
     os.makedirs(eg_save_path, exist_ok=True)
 
     print(f'This is the mode of {args.mode}.')
     print(f'This is the arrangement of {args.arr}.')
 
-    eval_dict = {'mse': 0}
+    eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
     examples_save_path = eg_save_path + f'/{setting}/'
     os.makedirs(examples_save_path, exist_ok=True)
 
@@ -156,11 +151,16 @@ def test_for_generate_results(args):
 
     # Validation phase
     for i, data in enumerate(tqdm(dataloaders["val"])):
+        # print(i)
+        # # if i != 14:
+        # #     continue
         len_dataloader = len(dataloaders["val"])
+        ##my code
         support_features = data['support_features']
         query_img_features = data['query_img_features']
         support_features = support_features.to(args.device, dtype=torch.float32)
         query_img_features = query_img_features.to(args.device, dtype=torch.float32)
+        ##end my code
         support_img, support_mask, query_img, query_mask, grid_stack =\
             data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
         support_img = support_img.to(args.device, dtype=torch.float32)
@@ -187,25 +187,30 @@ def test_for_generate_results(args):
         # image = TF.to_pil_image(canvas_label[0])
         #              # # 保存图像
         # image.save("debug.jpg")
-        original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                canvas_pred_tokens, canvas_label,
-                                                                                args.arr)
+
         # assert False
 
-        original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
+        original_image_list, generated_result_list = _generate_gt_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
-            # Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
 
+            sub_image = generated_result_list[index][113:, 113:]
+            sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
+            generated_result_list[index][113:, 113:] = sub_image
+
+            original_image = round_image(original_image_list[index], [WHITE, BLACK])
             generated_result = generated_result_list[index]
-            original_image = original_image_list[index]
-            # image = TF.to_pil_image(generated_result.permute(2,0,1))
+            if args.task == 'detection':
+                generated_result = to_rectangle(generated_result)
+            print(generated_result.shape)
+            Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
+            image = TF.to_pil_image(generated_result.permute(2,0,1))
             # image.save("debuggggg.jpg")
 
-            Image.fromarray(generated_result.astype(np.uint8)).save(
-                examples_save_path + f'generated_image_{image_number}.png')
+            # Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
+            #     examples_save_path + f'generated_image_{image_number}.png')
             # assert False
-            current_metric = calculate_mse(original_image, generated_result)
+            current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
 
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                 log.write(str(image_number) + '\t' + str(current_metric) + '\n')

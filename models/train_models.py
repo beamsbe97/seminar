@@ -63,6 +63,28 @@ def _generate_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, 
 
     return original_image_list, generated_result_list
 
+def _generate_gt_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, arr):
+    """canvas is already in the right range."""
+    # ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
+    batch_size = canvas_label.shape[0]
+    original_image_list = []
+    generated_result_list = []
+
+    for i in range(batch_size):
+        # if args.pos == 'before':
+        #     _, im_paste, _ = generate_image_zero_shot(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
+        #                                 canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
+        # else:
+        #     _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
+        #                                 canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
+        canvas_ = torch.einsum('chw->hwc', canvas_label[i])
+        canvas_ = torch.clip((canvas_.cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int().numpy()
+        # assert canvas_.shape == im_paste.shape, (canvas_.shape, im_paste.shape)
+
+        original_image_list.append(np.uint8(canvas_))
+        # generated_result_list.append(np.uint8(im_paste))
+    generated_result_list = original_image_list
+    return original_image_list, generated_result_list
 
 def round_image(img, options=(WHITE, BLACK, RED, GREEN, BLUE), outputs=None, t=(0, 0, 0)):
     # img.shape == [224, 224, 3], img.dtype == torch.int32
@@ -234,11 +256,11 @@ class PGVP(nn.Module):
         #     loss = (loss * mask).sum() / mask.sum()
         #     loss_ce = loss/canvas_label[0].shape[0]
         #     return loss_ce, canvas_pred_tokens, canvas_return_label
-        if self.args.loss_mean:
-            for sub_label in canvas_label:
-                loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
-            loss_ce /= N
-        else :
-            loss_ce = self.vqgan.forward_loss(canvas_label[0],y_pred,mask)
-        loss_ce = loss_ce + reg_loss
-        return loss_ce, canvas_pred_tokens, canvas_return_label
+        # if self.args.loss_mean:
+        #     for sub_label in canvas_label:
+        #         loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
+        #     loss_ce /= N
+        # else :
+        #     loss_ce = self.vqgan.forward_loss(canvas_label[0],y_pred,mask)
+        # loss_ce = loss_ce + reg_loss
+        return 0, canvas_pred_tokens, canvas_return_label
