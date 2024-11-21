@@ -203,12 +203,12 @@ def test_for_generate_results(args):
         log.write(str(args) + '\n')
 
     image_number = 0
-    brid_root = ''
+    brid_root = '/data/luotianci/TO_JPSX/rabbit_brid'
     support_img_1 = image_transform(Image.open(os.path.join(brid_root,'s1.png')))
     support_mask_1 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m1.png'))))
     support_img_2 = image_transform(Image.open(os.path.join(brid_root,'s2.png')))
     support_mask_2 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m2.png'))))
-    query_img = image_transform(Image.open(os.path.join(brid_root,'q1.png')))
+    query_img = image_transform(Image.open(os.path.join(brid_root,'q1.jpg')))
     query_mask = mask_transform(get_bw(Image.open(os.path.join(brid_root,'l1.png'))))
     print(support_img_1.shape,support_mask_1.shape,query_img.shape,query_mask.shape)
     grid_1 = create_gradiant_grid_images(support_img_1, support_mask_1, query_img, query_mask, args.arr)
