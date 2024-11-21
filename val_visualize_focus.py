@@ -203,13 +203,13 @@ def test_for_generate_results(args):
         log.write(str(args) + '\n')
 
     image_number = 0
-
-    support_img_1 = image_transform(Image.open('/data/luotianci/TO_JPSX/rabbit_brid/s1.png'))
-    support_mask_1 = mask_transform(get_bw(Image.open('/data/luotianci/TO_JPSX/rabbit_brid/m1.png')))
-    support_img_2 = image_transform(Image.open('/data/luotianci/TO_JPSX/rabbit_brid/s2.png'))
-    support_mask_2 = mask_transform(get_bw(Image.open('/data/luotianci/TO_JPSX/rabbit_brid/m2.png')))
-    query_img = image_transform(Image.open('/data/luotianci/TO_JPSX/rabbit_brid/q1.jpg'))
-    query_mask = mask_transform(get_bw(Image.open('/data/luotianci/TO_JPSX/rabbit_brid/l1.png')))
+    brid_root = ''
+    support_img_1 = image_transform(Image.open(os.path.join(brid_root,'s1.png')))
+    support_mask_1 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m1.png'))))
+    support_img_2 = image_transform(Image.open(os.path.join(brid_root,'s2.png')))
+    support_mask_2 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m2.png'))))
+    query_img = image_transform(Image.open(os.path.join(brid_root,'q1.png')))
+    query_mask = mask_transform(get_bw(Image.open(os.path.join(brid_root,'l1.png'))))
     print(support_img_1.shape,support_mask_1.shape,query_img.shape,query_mask.shape)
     grid_1 = create_gradiant_grid_images(support_img_1, support_mask_1, query_img, query_mask, args.arr)
     grid_2 = create_gradiant_grid_images(support_img_2, support_mask_2, query_img, query_mask, args.arr)
@@ -261,11 +261,11 @@ def test_for_generate_results(args):
         if index == 0:
             image = TF.to_pil_image(generated_result_list[0])
                 # # 保存图像
-            image.save("result.jpg")
+            image.save(os.path.join(brid_root,"result.jpg"))
             image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-            image.save("final_result.jpg")
+            image.save(os.path.join(brid_root,"final_result.jpg"))
             image = TF.to_pil_image((original_image/255).permute(2,0,1))
-            image.save("original_image.jpg")
+            image.save(os.path.join(brid_root,"original_image.jpg"))
         with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
             # log.write(str(idx) + '\t' + str(current_metric) + '\n')
             log.write(str(image_number) + '\t' + str(current_metric) + '\n')
