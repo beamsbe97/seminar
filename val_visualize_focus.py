@@ -292,11 +292,14 @@ def test_for_generate_results(args):
     print(self_attn_weight.shape)
     cross_attn_weight = cross_attn_weight.permute(2,1,0).reshape(2,7,7)
     attn_ = cross_attn_weight * self_attn_weight
-    print(attn_)
+    # print(attn_)
+    # attn_ = attn_.detach().cpu().numpy()
+    # np.save("/data/luotianci/TO_JPSX/rabbit_brid/tmp_attention_score.npy", attn_)
+    
+    attn_ = np.load("/data/luotianci/TO_JPSX/rabbit_brid/tmp_attention_score.npy")
 
-
-    mtx1 = attn_[0].detach().cpu().numpy()  # Example 7x7 matrix 1
-    mtx2 = attn_[1].detach().cpu().numpy()  # Example 7x7 matrix 2
+    mtx1 = attn_[0]  # Example 7x7 matrix 1
+    mtx2 = attn_[1]  # Example 7x7 matrix 2
 
     img1 = (np.transpose(support_img_1.detach().cpu().numpy(),(1,2,0))*255).astype(np.uint8)  # Example 111x111 white image 1
     img2 = (np.transpose(support_img_2.detach().cpu().numpy(),(1,2,0))*255).astype(np.uint8)  # Example 111x111 white image 2
@@ -329,9 +332,10 @@ def test_for_generate_results(args):
 
     # 在第三个子图中显示原图叠加热力图2
     axes[2].imshow(img2)
-    axes[2].imshow(mtx2_resized, cmap='jet', alpha=0.5)  # 叠加热力图2
+    im2 = axes[2].imshow(mtx2_resized, cmap='jet', alpha=0.5)  # 叠加热力图2
     axes[2].set_title("Attention for Prompt 2",fontsize=30)
     axes[2].axis('off')
+    fig.colorbar(im2, ax=axes[2], fraction=0.046, pad=0.04)
 
     # 显示结果
     plt.tight_layout()  # 调整布局
