@@ -134,14 +134,14 @@ def test_for_generate_results(args):
         VP.to(args.device)
 
     setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
-    eg_save_path = f'{args.output_dir}/{args.vp_model}_output_examples/{args.mode}'
+    eg_save_path = f'Rebuttal/{args.output_dir}/{args.vp_model}_output_examples/{args.mode}'
     os.makedirs(eg_save_path, exist_ok=True)
 
     print(f'This is the mode of {args.mode}.')
     print(f'This is the arrangement of {args.arr}.')
 
     eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-    examples_save_path = eg_save_path + f'/{setting}/'
+    examples_save_path = eg_save_path + f'/{setting}/rebuttal'
     os.makedirs(examples_save_path, exist_ok=True)
 
     with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:

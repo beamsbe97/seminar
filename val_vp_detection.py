@@ -141,7 +141,7 @@ def test_for_generate_results(args):
     print(f'This is the arrangement of {args.arr}.')
 
     eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-    examples_save_path = eg_save_path + f'/{setting}/'
+    examples_save_path = eg_save_path + f'/{setting}/rebuttal'
     os.makedirs(examples_save_path, exist_ok=True)
 
     with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:
@@ -193,6 +193,7 @@ def test_for_generate_results(args):
         original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
+            Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
 
             sub_image = generated_result_list[index][113:, 113:]
             sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)

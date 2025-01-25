@@ -122,10 +122,10 @@ class PromptGeneratorConv(nn.Module):
         print('dropout ',dropout)
         print('Conv\n')
         print('kernel_size ',kernel_size)
-        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2,groups=1024)
-        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2,groups=1024)
-        self.Layer_norm_s = nn.LayerNorm(1024)
-        self.Layer_norm_q = nn.LayerNorm(1024)
+        self.conv_img = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
+        self.conv_msk = nn.Conv2d(1024,1024,kernel_size,1,(kernel_size-1)//2)
+        self.Layer_norm = nn.LayerNorm(1024)
+        # self.Layer_norm_q = nn.LayerNorm(1024)
         self.Linear = nn.Linear(1024,1024)
         self.args = args
         self.initialize_weights()
@@ -170,7 +170,7 @@ class PromptGeneratorConv(nn.Module):
         support_features = torch.cat((suppimg_features,suppmask_features),dim=2)
         qss = support_features.reshape(batchsize*N,98,1024)
         if self.args.align_s:
-            qss_layer_norm = self.Layer_norm_s(qss)
+            qss_layer_norm = self.Layer_norm(qss)
             ats_ans,global_var.self_attn_weight = self.SelfAttention_S(qss_layer_norm,qss_layer_norm,qss_layer_norm)
             support_features = qss + ats_ans #[B*N,98,1024]
         else :
@@ -180,7 +180,7 @@ class PromptGeneratorConv(nn.Module):
         query_features_mask = query_features[:,:,:,7:,:]
         query_features_img = query_features_img.reshape(batchsize,49,1024)
         if self.args.align_q:
-            qsq_layner_norm = self.Layer_norm_q(query_features_img)
+            qsq_layner_norm = self.Layer_norm(query_features_img)
             atq_ans,_ = self.SelfAttention_Q(qsq_layner_norm,qsq_layner_norm,qsq_layner_norm)
             query_features_img = query_features_img + atq_ans #[B,49,1024]
         query_features_img = query_features_img.reshape(batchsize*49,1,1024)
