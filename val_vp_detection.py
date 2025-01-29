@@ -193,7 +193,7 @@ def test_for_generate_results(args):
         original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
-            Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
+            # Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
 
             sub_image = generated_result_list[index][113:, 113:]
             sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
@@ -208,8 +208,8 @@ def test_for_generate_results(args):
             image = TF.to_pil_image(generated_result.permute(2,0,1))
             # image.save("debuggggg.jpg")
 
-            # Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
-            #     examples_save_path + f'generated_image_{image_number}.png')
+            Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
+                examples_save_path + f'generated_image_{image_number}.png')
             # assert False
             current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
 
