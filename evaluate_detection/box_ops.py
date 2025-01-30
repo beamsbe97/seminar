@@ -12,7 +12,8 @@ def to_rectangle(img, start_h=113, start_w=113):
 
     # print('img shape: ', img.shape)
     img = torch.tensor(img)
-    img_np = img.numpy().astype('uint8')[start_h:, start_w:, 0]
+    # img_np = img.numpy().astype('uint8')[start_h:, start_w:, 0]
+    img_np = img.numpy().astype('uint8')[:111 , start_w:, 0]
     num_labels, labels_im = cv2.connectedComponents(img_np)
     new_img = np.zeros((img_np.shape[0], img_np.shape[1]))
     indices = np.argsort([np.sum(labels_im == i) for i in range(num_labels)])[::-1]
@@ -24,7 +25,7 @@ def to_rectangle(img, start_h=113, start_w=113):
         break
     new_img = torch.tensor(new_img)
     new_img = torch.stack([new_img, new_img, new_img], dim=-1)
-    img[start_h:, start_w:] = new_img
+    img[:111 , start_w:] = new_img
 
     return img
 

@@ -195,9 +195,9 @@ def test_for_generate_results(args):
         for index in range(len(original_image_list)):
             # Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
 
-            sub_image = generated_result_list[index][113:, 113:]
+            sub_image = generated_result_list[index][:111, 113:]
             sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
-            generated_result_list[index][113:, 113:] = sub_image
+            generated_result_list[index][:111, 113:] = sub_image
 
             original_image = round_image(original_image_list[index], [WHITE, BLACK])
             generated_result = generated_result_list[index]
