@@ -92,7 +92,7 @@ def calculate_mse(target, ours):
     target = (np.transpose(target/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
 
     target = target[:, 113:, 113:]
-    ours = ours[:, 113:, 113:]
+    ours = ours[:, :111, 113:]
     mse = np.mean((target - ours)**2)
     return {'mse': mse}
 def convert_to_rgb(image):
@@ -187,9 +187,6 @@ def test_for_generate_results(args):
         # image = TF.to_pil_image(canvas_label[0])
         #              # # 保存图像
         # image.save("debug.jpg")
-        original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-                                                                                canvas_pred_tokens, canvas_label,
-                                                                                args.arr)
         # assert False
 
         original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
