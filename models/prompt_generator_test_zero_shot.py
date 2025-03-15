@@ -23,7 +23,8 @@ class PromptGeneratorlimzero(nn.Module):
         self.SelfAttention_S = nn.MultiheadAttention(embed_dim = 1024, dropout = dropout, num_heads = 8,batch_first=True)
         print('dropout ',dropout)
         print('Zero\n')
-        self.Layer_norm = nn.LayerNorm(1024)
+        self.Layer_norm_s = nn.LayerNorm(1024)
+        self.Layer_norm_q = nn.LayerNorm(1024)
         self.Linear = nn.Linear(1024,1024)
         self.args = args
         self.initialize_weights()
@@ -60,7 +61,7 @@ class PromptGeneratorlimzero(nn.Module):
         # print(support_features.shape)
         qss = support_features.reshape(batchsize*N,98,1024)
         if self.args.align_s:
-            qss_layer_norm = self.Layer_norm(qss)
+            qss_layer_norm = self.Layer_norm_s(qss)
             ats_ans,_ = self.SelfAttention_S(qss_layer_norm,qss_layer_norm,qss_layer_norm)
             support_features = qss + ats_ans #[B*N,98,1024]
         else :
@@ -70,7 +71,7 @@ class PromptGeneratorlimzero(nn.Module):
         query_features_mask = query_features[:,:,:,7:,:]
         query_features_img = query_features_img.reshape(batchsize,49,1024)
         if self.args.align_q:
-            qsq_layner_norm = self.Layer_norm(query_features_img)
+            qsq_layner_norm = self.Layer_norm_q(query_features_img)
             atq_ans,_ = self.SelfAttention_Q(qsq_layner_norm,qsq_layner_norm,qsq_layner_norm)
             query_features_img = query_features_img + atq_ans #[B,49,1024]
         query_features_img = query_features_img.reshape(batchsize*49,1,1024)
@@ -92,10 +93,15 @@ class PromptGeneratorlimzero(nn.Module):
         attn_out2 = attn_out2.reshape(batchsize,7,7,1024)
         query_features_img = query_features_img.reshape(batchsize,7,7,1024)
         query_features_mask = query_features_mask.reshape(batchsize,7,7,1024)
+
+        cosine_loss_img = F.cosine_embedding_loss(query_features_img.reshape(batchsize*49,1024),attn_out1.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
+        cosine_loss_msk = F.cosine_embedding_loss(query_features_mask.reshape(batchsize*49,1024),attn_out2.reshape(batchsize*49,1024), torch.tensor([1]).to(self.args.device))
+        loss = cosine_loss_img+cosine_loss_msk
+
         support_tokens = torch.cat((attn_out1,attn_out2),dim=2)
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
-        return canvas_tokens
+        return canvas_tokens,loss
 
 class PromptGeneratorConv(nn.Module):
     def __init__(self,args,dropout = 0,kernel_size = 3):
