@@ -273,8 +273,8 @@ def decode_raw_predicion(mask, model, num_patches, orig_image, y):
     orig_image = (
         torch.clip((orig_image[0].cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int()).unsqueeze(0)
     # MAE reconstruction pasted with visible patches
-    # im_paste = orig_image * (1 - mask) + y * mask
-    im_paste = y
+    im_paste = orig_image * (1 - mask) + y * mask
+    # im_paste = y
 
     return im_paste, mask, orig_image
 

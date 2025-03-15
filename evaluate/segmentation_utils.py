@@ -8,8 +8,7 @@ def calculate_metric(args, target, ours, fg_color=WHITE, bg_color=BLACK):
     arr = args.arr
     if arr == 'a1' or arr == 'a8':
         target = target[113:, 113:]
-        # ours = ours[113:, 113:]
-        ours = ours[:111, 113:]
+        ours = ours[113:, 113:]
     elif arr == 'a2' or arr == 'a7':
         target = target[113:, :111]
         ours = ours[113:, :111]
