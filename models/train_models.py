@@ -3,7 +3,7 @@ from evaluate.mae_utils import *
 from evaluate.segmentation_utils import *
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from models.prompt_generator import PromptGenerator,PromptGeneratorlimzero,PromptGeneratorConv
+from models.prompt_generator import PromptGenerator,PromptGeneratorlimzero,PromptGeneratorConv,PromptGeneratorFullCA,PromptGeneratorFullConv
 from PIL import Image
 import torchvision.transforms.functional as TF
 
@@ -117,6 +117,10 @@ class PGVP(nn.Module):
             self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma,device=args.device)
         if args.choice == 'Conv':
             self.PromptGenerator = PromptGeneratorConv(args=args,dropout=args.dropout,kernel_size=args.kernel_size)
+        if args.choice == 'Full':
+            self.PromptGenerator = PromptGeneratorFullCA(dropout = args.dropout,args=args)
+        if args.choice == 'FullConv':
+            self.PromptGenerator = PromptGeneratorFullConv(args=args,dropout = args.dropout,kernel_size=args.kernel_size)
         self.transform224 = ResizeTransform((224, 224))
         self.transform111 = ResizeTransform((111, 111))
         self.mode = mode
