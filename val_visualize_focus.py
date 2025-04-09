@@ -57,6 +57,7 @@ def get_args():
     parser.add_argument('--G_pre_mean', action='store_true')
     parser.add_argument('--G_copy_another', action='store_true')
     parser.add_argument('--G_only_div', action='store_true')
+    parser.add_argument('--loss_mean', action='store_true')
     # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
     # training settings
     parser.add_argument("--batch-size", type=int, default=32,
@@ -204,12 +205,20 @@ def test_for_generate_results(args):
 
     image_number = 0
     brid_root = '/data/luotianci/TO_JPSX/rabbit_brid'
-    support_img_1 = image_transform(Image.open(os.path.join(brid_root,'s1.png')))
+    # /data/luotianci/TO_JPSX/VisualICL/pascal-5i/VOC2012/JPEGImages/2007_000768.jpg
+    support_img_1 = image_transform(Image.open(os.path.join('/data/luotianci/TO_JPSX/VisualICL/pascal-5i/VOC2012/JPEGImages/2008_007356.jpg')))
     support_mask_1 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m1.png'))))
-    support_img_2 = image_transform(Image.open(os.path.join(brid_root,'s2.png')))
+    support_img_2 = image_transform(Image.open(os.path.join('/data/luotianci/TO_JPSX/VisualICL/pascal-5i/VOC2012/JPEGImages/2009_004871.jpg')))
     support_mask_2 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m2.png'))))
-    query_img = image_transform(Image.open(os.path.join(brid_root,'q1.jpg')))
+    query_img = image_transform(Image.open('/data/luotianci/TO_JPSX/VisualICL/pascal-5i/VOC2012/JPEGImages/2007_000768.jpg'))
     query_mask = mask_transform(get_bw(Image.open(os.path.join(brid_root,'l1.png'))))
+
+    # support_img_1 = image_transform(Image.open(os.path.join(brid_root,'s1.png')))
+    # support_mask_1 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m1.png'))))
+    # support_img_2 = image_transform(Image.open(os.path.join(brid_root,'s2.png')))
+    # support_mask_2 = mask_transform(get_bw(Image.open(os.path.join(brid_root,'m2.png'))))
+    # query_img = image_transform(Image.open(os.path.join(brid_root,'q1.jpg')))
+    # query_mask = mask_transform(get_bw(Image.open(os.path.join(brid_root,'l1.png'))))
     print(support_img_1.shape,support_mask_1.shape,query_img.shape,query_mask.shape)
     grid_1 = create_gradiant_grid_images(support_img_1, support_mask_1, query_img, query_mask, args.arr)
     grid_2 = create_gradiant_grid_images(support_img_2, support_mask_2, query_img, query_mask, args.arr)
@@ -240,7 +249,7 @@ def test_for_generate_results(args):
     query_mask = query_mask.to(args.device, dtype=torch.float32)
     grid_stack = grid_stack.to(args.device, dtype=torch.float32)
 
-    _, canvas_pred_tokens, canvas_label = VP(support_img_1.unsqueeze(1), support_mask_1.unsqueeze(1), query_img, query_mask, grid_stack.unsqueeze(1), 
+    _, canvas_pred_tokens, canvas_label = VP(support_img_1.unsqueeze(0), support_mask_1.unsqueeze(0), query_img, query_mask, grid_stack.unsqueeze(0), 
                         query_img_features, support_features)
 
 
@@ -300,6 +309,28 @@ def test_for_generate_results(args):
 
     mtx1 = attn_[0]  # Example 7x7 matrix 1
     mtx2 = attn_[1]  # Example 7x7 matrix 2
+    print(mtx1)
+    print(mtx2)
+
+    mtx1 = [
+    [0.07643892, 0.0805528,  0.08759949, 0.08816373, 0.05349615, 0.0302674,  0.06830069],
+    [0.07101087, 0.08164174, 0.0858464,  0.07831824, 0.07561835, 0.09499101, 0.05491219],
+    [0.02910773, 0.11822633, 0.07985701, 0.11,       0.07804436, 0.00335325, 0.07338289],
+    [0.08054363, 0.1042185, 0.12514865, 0.09760845, 0.07510466, 0.04966555, 0.03907864],
+    [0.0763514,  0.11445126, 0.10438498, 0.09950712, 0.07281468, 0.04663503, 0.03460584],
+    [0.08760343, 0.08121394, 0.0754293,  0.08745107, 0.07159027, 0.04479018, 0.03721435],
+    [0.04936506, 0.07481728, 0.05543581, 0.06367266, 0.05895988, 0.03270551, 0.04299845]
+    ]
+
+    mtx2 = [
+        [0.04492811, 0.03521601, 0.04729493, 0.06851254, 0.05132106, 0.03843292, 0.06017538],
+        [0.06662681, 0.06679338, 0.058565,   0.04297135, 0.03497232, 0.03575206, 0.06414983],
+        [0.05776167, 0.06685051, 0.06076251, 0.08294553, 0.09627978, 0.10142702, 0.06165989],
+        [0.06490755, 0.06620739, 0.06479669, 0.06020132, 0.11440388, 0.11647462, 0.0756189],
+        [0.07197496, 0.05976314, 0.06430106, 0.07930436, 0.11794655, 0.11493224, 0.09026089],
+        [0.06379303, 0.08603238, 0.06014406, 0.04912078, 0.05207584, 0.04908711, 0.06599187],
+        [0.06159195, 0.07367951, 0.07431941, 0.06937337, 0.05986721, 0.05491506, 0.07309341]
+    ]
 
     img1 = (np.transpose(support_img_1.detach().cpu().numpy(),(1,2,0))*255).astype(np.uint8)  # Example 111x111 white image 1
     img2 = (np.transpose(support_img_2.detach().cpu().numpy(),(1,2,0))*255).astype(np.uint8)  # Example 111x111 white image 2
@@ -327,13 +358,13 @@ def test_for_generate_results(args):
     # overlay1 = img1 * (1 - 0.5) + heatmap1_colored * 0.5  # 控制热力图透明度
     # axes[1].imshow(overlay1)
 
-    axes[1].set_title("Attention for Prompt 1",fontsize=30)
+    axes[1].set_title("Map for Prompt 1",fontsize=30)
     axes[1].axis('off')
 
     # 在第三个子图中显示原图叠加热力图2
     axes[2].imshow(img2)
     im2 = axes[2].imshow(mtx2_resized, cmap='jet', alpha=0.5)  # 叠加热力图2
-    axes[2].set_title("Attention for Prompt 2",fontsize=30)
+    axes[2].set_title("Map for Prompt 2",fontsize=30)
     axes[2].axis('off')
     fig.colorbar(im2, ax=axes[2], fraction=0.046, pad=0.04)
 
@@ -341,7 +372,7 @@ def test_for_generate_results(args):
     plt.tight_layout()  # 调整布局
     plt.subplots_adjust(top=0.85)  # 增加布局间距
 
-    plt.savefig('/data/luotianci/TO_JPSX/rabbit_brid/fin_attn_vis_2.pdf')
+    plt.savefig('/data/luotianci/TO_JPSX/vis.pdf')
 
     plt.show()
 
