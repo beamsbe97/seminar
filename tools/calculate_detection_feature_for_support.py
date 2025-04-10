@@ -8,7 +8,7 @@ import sys
 from evaluate_detection.voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
 from evaluate_detection.voc import make_transforms, create_grid_from_images
 import torch
-import Codes.models.models_mae as models_mae
+import models.models_mae as models_mae
 from PIL import Image
 from evaluate.mae_utils import PURPLE, YELLOW
 import torchvision.transforms as T
@@ -16,7 +16,6 @@ import h5py
 import torchvision.transforms.functional as TF
 from PIL import Image
 from omegaconf import OmegaConf
-from Codes.models.vqgan import VQModel
 
 def box_to_img(mask, target, border_width=4):
     if mask is None:
@@ -47,10 +46,7 @@ def get_annotated_image(img, boxes, border_width=3, mode='draw', bgcolor='white'
     return image_copy
 
 def load_maevq(chkpt_dir = './weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
-    #vq = prepare_model(args.ckpt, arch=args.mae_model)
-    # build model
     model = getattr(models_mae, arch)()
-    # load model
     checkpoint = torch.load(chkpt_dir, map_location='cpu')
     msg = model.load_state_dict(checkpoint['model'], strict=False)
     return model
@@ -74,10 +70,6 @@ years=("2012",)
 eval_support = VOCDetection4Val(pascal_path, years, image_sets=['train'], transforms=None,keep_single_objs_only=1, filter_by_mask_size=1)
 train_support = VOCDetection4Train(pascal_path, years, image_sets=['train'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
 
-# eval_query = VOCDetection4Val(pascal_path, years, image_sets=['val'], transforms=None,keep_single_objs_only=1, filter_by_mask_size=1)
-# train_query = VOCDetection4Train(pascal_path, years, image_sets=['val'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
-
-
 background_transforms = T.Compose([
     T.Resize((224, 224)),
     T.Compose([
@@ -89,8 +81,6 @@ transforms = make_transforms('val')
 
 print(len(eval_support.images))
 print(len(train_support.images))
-# print(len(eval_query.images))
-# print(len(train_query.images))
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 
@@ -119,11 +109,7 @@ for idx in range(len(eval_support.images)):
     cats.append(grid)
     if len(cats) == 256:
         cats = torch.stack(cats).cuda()
-        # image = TF.to_pil_image(cats[31])
-        # # # 保存图像
-        # image.save("cat.jpg")
         print(cats.shape)
-        # assert False
         with torch.no_grad():
             img_features = model.patch_embed(cats)
             img_features = img_features + model.pos_embed[:,1:,:]
@@ -152,15 +138,12 @@ with h5py.File(f"{features_dir}/detection_eval_support.h5df", "w") as f:
         print(idx,"   ",dataset_name)
         if dataset_name not in f:
             feature = img_features[idx]
-            # print(feature.shape)
-            # print(feature.shape,(feature[:98,:]).shape)
             dset = f.create_dataset(dataset_name, data = feature[:98,:])
 
 img_global_features = torch.tensor([]).cuda()
 
 cats = []
 
-# assert False
 for idx in range(len(train_support.images)):    
     query_image, query_target = train_support[idx]
 
@@ -181,11 +164,6 @@ for idx in range(len(train_support.images)):
     cats.append(grid)
     if len(cats) == 256:
         cats = torch.stack(cats).cuda()
-        # image = TF.to_pil_image(cats[31])
-        # # # 保存图像
-        # image.save("cat.jpg")
-        # print(cats.shape)
-        # assert False
         with torch.no_grad():
             img_features = model.patch_embed(cats)
             img_features = img_features + model.pos_embed[:,1:,:]

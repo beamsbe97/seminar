@@ -12,7 +12,6 @@ from evaluate.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from models.prompt_generator import PromptGenerator
 from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
@@ -37,7 +36,6 @@ def get_args():
     parser.add_argument('--dataset_type', default='pascal')
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
-    # parser.add_argument('--temperature', default=0.1, type=float)
     parser.add_argument('--fold', default=0, type=int)
     parser.add_argument('--split', default='trn', type=str)
     parser.add_argument('--purple', default=0, type=int)
@@ -53,8 +51,6 @@ def get_args():
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--fsl', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument('--retri_choice', default='random', type=str)
     # training settings
     parser.add_argument("--batch-size", type=int, default=32,
@@ -98,7 +94,7 @@ def train(args):
     setting = f'_lr_{args.lr}_task_{args.task}'
     # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
     task = f'retri_choice_{args.retri_choice}_task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
@@ -153,9 +149,6 @@ def train(args):
     # MAE_VQGAN model
     vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
     print(args.device)
-    # if args.vp_model == 'pad':
-    #     print('load pad prompter.')
-    #     VP = CustomVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr, p_eps=args.p_eps)
     if args.vp_model == 'Prompt':
         print('load prompt generator')
         VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
@@ -173,11 +166,10 @@ def train(args):
     ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
     if os.path.exists(ckpt_path):
         checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
-        # state_dict = torch.load(, map_location=args.device)
         VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
         optimizer.load_state_dict(checkpoint['optimizer_dict'])
-        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
-        best_iou = checkpoint['best_iou']  # 加载最佳 iou
+        begin_epoch = checkpoint['epoch'] + 1  
+        best_iou = checkpoint['best_iou']  
         scheduler.load_state_dict(checkpoint['scheduler_dict'])
         scaler.load_state_dict(checkpoint['scaler_dict'])
         print(begin_epoch)
@@ -190,8 +182,6 @@ def train(args):
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
 
-  #  print(VP.PromptGenerator.vqgan.decoder.conv_in.weight.requires_grad)
-
     print(f'We use the mode of {args.mode}.')
     print(f'We adopt the arrangement of {args.arr}.')
 
@@ -200,7 +190,6 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    # with torch.autograd.detect_anomaly():
 
     for epoch in range(begin_epoch, args.epoch + 1):
         epoch_loss = 0.0
@@ -216,7 +205,6 @@ def train(args):
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']
-            # print("pre    ",support_features[0][0])
             query_img_features = data['query_img_features']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
@@ -240,29 +228,6 @@ def train(args):
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
 
-        #     original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-        #                                                                              canvas_pred_tokens, canvas_label,
-        #                                                                              args.arr)
-        #     for index in range(len(original_image_list)):
-        #         original_image = round_image(original_image_list[index], [WHITE, BLACK])
-                
-        #         generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
-        #         # if index == 0:
-        #         #     image = TF.to_pil_image(generated_result_list[0])
-        #         #      # # 保存图像
-        #         #     image.save("result.jpg")
-        #         #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-        #         #     image.save("final_result.jpg")
-        #         #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-        #         #     image.save("original_image.jpg")
-        #         current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                
-        #         for i, j in current_metric.items():
-        #             train_eval_dict[i] += (j / len(train_dataset))
-        #     # assert False
-        # print('val metric: {}'.format(train_eval_dict))
-        # train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
-
         scheduler.step()
 
         average_epoch_loss = epoch_loss / len_dataloader
@@ -284,12 +249,10 @@ def train(args):
         # Validation phase
         for i, data in enumerate(tqdm(dataloaders["val"])):
             len_dataloader = len(dataloaders["val"])
-            ##my code
             support_features = data['support_features']
             query_img_features = data['query_img_features']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-            ##end my code
             support_img, support_mask, query_img, query_mask, grid_stack = \
                 data['support_img'], data['support_mask'], data['query_img'], data['query_mask'], data['grid_stack']
             support_img = support_img.to(args.device, dtype=torch.float32)
@@ -309,18 +272,6 @@ def train(args):
                     Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
                 original_image = round_image(original_image_list[index], [WHITE, BLACK])
                 generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
-                # if index == 0:
-                #     image = TF.to_pil_image(generated_result_list[0])
-
-                #      # # 保存图像
-                #     image.save("result.jpg")
-                # #    print(generated_result.shape)
-                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                #     # # 保存图像
-                #     image.save("final_result.jpg")
-                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                #     # # 保存图像
-                #     image.save("original_image.jpg")
                 current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                 
                 with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:

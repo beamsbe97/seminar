@@ -44,10 +44,6 @@ def get_args():
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    parser.add_argument('--sigma', default=0.1, type=float)
-
-    # train settings
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -72,7 +68,7 @@ def get_args():
     parser.add_argument("--loss_mean",type=int, default=1)
     parser.add_argument('--save_model_path',
                         help='model checkpoint')
-    parser.add_argument("--choice", type=str, default='Conv',
+    parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
 
     parser.add_argument('--kernel_size', default=7, type=int)
@@ -92,7 +88,7 @@ def calculate_mse(target, ours):
     target = (np.transpose(target/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
 
     target = target[:, 113:, 113:]
-    ours = ours[:, :111, 113:]
+    ours = ours[:, 113:, 113:]
     mse = np.mean((target - ours)**2)
     return {'mse': mse}
 def convert_to_rgb(image):
@@ -156,7 +152,6 @@ def test_for_generate_results(args):
 
     # Validation phase
     for i, data in enumerate(tqdm(dataloaders["val"])):
-        len_dataloader = len(dataloaders["val"])
         support_features = data['support_features']
         query_img_features = data['query_img_features']
         support_features = support_features.to(args.device, dtype=torch.float32)
@@ -168,46 +163,19 @@ def test_for_generate_results(args):
         query_img = query_img.to(args.device, dtype=torch.float32)
         query_mask = query_mask.to(args.device, dtype=torch.float32)
         grid_stack = grid_stack.to(args.device, dtype=torch.float32)
-        # print(data['name'])
         _, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                         query_img_features,support_features)
-        # print(canvas_label.shape)
-        # image = TF.to_pil_image(support_img[0][0])
-        #              # # 保存图像
-        # image.save("debug1.jpg")
-        # image = TF.to_pil_image(support_mask[0][0])
-        #              # # 保存图像
-        # image.save("debug2.jpg")
-        # image = TF.to_pil_image(query_img[0])
-        #              # # 保存图像
-        # image.save("debug3.jpg")
-        # image = TF.to_pil_image(query_mask[0])
-        #              # # 保存图像
-        # image.save("debug4.jpg")
-        # image = TF.to_pil_image(canvas_label[0])
-        #              # # 保存图像
-        # image.save("debug.jpg")
-        # assert False
-
         original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
-            # Image.fromarray(generated_result_list[index]).save(examples_save_path + f'generated_image_{image_number}.png')
-
             generated_result = generated_result_list[index]
             original_image = original_image_list[index]
-            # image = TF.to_pil_image(generated_result.permute(2,0,1))
-            # image.save("debuggggg.jpg")
-
             Image.fromarray(generated_result.astype(np.uint8)).save(
                 examples_save_path + f'generated_image_{image_number}.png')
-            # assert False
             current_metric = calculate_mse(original_image, generated_result)
-
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                 log.write(str(image_number) + '\t' + str(current_metric) + '\n')
             image_number += 1
-
             for i, j in current_metric.items():
                 eval_dict[i] += (j / len(val_dataset))
 

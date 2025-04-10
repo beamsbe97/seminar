@@ -15,11 +15,10 @@ from torch.nn import functional as F
 
 import timm
 import sys
-
+from evaluate_detection.voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
 
 model_name = sys.argv[1]
 feature_name = sys.argv[2]
-split = sys.argv[3]
 
 """
 model names:
@@ -44,21 +43,25 @@ t.append(T.CenterCrop(model.pretrained_cfg['input_size'][1]))
 t.append(T.ToTensor())
 t.append(T.Normalize(model.pretrained_cfg['mean'], model.pretrained_cfg['std']))
 center_crop = T.Compose(t)
+pascal_path='pascal-5i'
+years=("2012",)
 
+eval_support = VOCDetection4Val(pascal_path, years, image_sets=['train'], transforms=None,keep_single_objs_only=1, filter_by_mask_size=1)
+train_support = VOCDetection4Train(pascal_path, years, image_sets=['train'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
 
-save_dir = f"./pascal-5i/VOC2012/{feature_name}_{split}_all_detection"
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
-# else:
-#     print(f"Directory exists at {save_dir}")
-#     sys.exit()
+eval_query = VOCDetection4Val(pascal_path, years, image_sets=['val'], transforms=None,keep_single_objs_only=1, filter_by_mask_size=1)
+train_query = VOCDetection4Train(pascal_path, years, image_sets=['val'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
 
-
-meta_root = f"./pascal-5i/VOC2012/ImageSets/Main/{split}"
 image_root = "./pascal-5i/VOC2012/JPEGImages"
 sys.stdout.flush()
-with open(meta_root + '.txt') as f:
-    examples = f.readlines()
+
+save_dir = f"./pascal-5i/VOC2012/{feature_name}_val_all_detection"
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+examples = []
+for x in eval_support.images:
+    examples.append(x.split('/')[-1][:-4])
+
 if len(examples) == 0:
     print(f"zeros file.")
     sys.stdout.flush()
@@ -66,7 +69,8 @@ if len(examples) == 0:
 # print("examples: ", examples)
 examples = [os.path.join(image_root, example.strip()+'.jpg') for example in examples]
 # print("examples: ", examples)
-
+# print(examples)
+# assert False
 imgs = []
 
 global_features = torch.tensor([]).cuda()
@@ -103,7 +107,161 @@ with torch.no_grad():
 
 features = global_features.cpu().numpy().astype(np.float32)
 
-save_file = os.path.join(save_dir, 'folder')
+save_file = os.path.join(save_dir, 'folder_support')
+np.savez(save_file, examples=examples, features=features)
+
+print('features shape: ', features.shape)
+
+examples = []
+for x in eval_query.images:
+    examples.append(x.split('/')[-1][:-4])
+
+if len(examples) == 0:
+    print(f"zeros file.")
+    sys.stdout.flush()
+
+examples = [os.path.join(image_root, example.strip()+'.jpg') for example in examples]
+imgs = []
+
+global_features = torch.tensor([]).cuda()
+for example in examples:
+    try:
+        path = os.path.join(example)
+        img = Image.open(path).convert("RGB")
+        img = center_crop(img)
+        imgs.append(img)
+        # print("length of imgs: ", len(imgs))
+    except:
+        print(f"Disappear {path}")
+        sys.stdout.flush()
+
+    if len(imgs) == 128:
+
+        imgs = torch.stack(imgs).cuda()
+        with torch.no_grad():
+            features = model.forward_features(imgs)
+            if len(global_features) == 0:
+                global_features = features
+            else:
+                global_features = torch.cat((global_features, features))
+
+        imgs = []
+
+imgs = torch.stack(imgs).cuda()
+with torch.no_grad():
+    features = model.forward_features(imgs)
+    if len(global_features) == 0:
+        global_features = features
+    else:
+        global_features = torch.cat((global_features, features))
+
+features = global_features.cpu().numpy().astype(np.float32)
+
+save_file = os.path.join(save_dir, 'folder_query')
+np.savez(save_file, examples=examples, features=features)
+
+print('features shape: ', features.shape)
+
+save_dir = f"./pascal-5i/VOC2012/{feature_name}_train_all_detection"
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
+examples = []
+for x in train_support.images:
+    examples.append(x.split('/')[-1][:-4])
+
+if len(examples) == 0:
+    print(f"zeros file.")
+    sys.stdout.flush()
+
+examples = [os.path.join(image_root, example.strip()+'.jpg') for example in examples]
+imgs = []
+
+global_features = torch.tensor([]).cuda()
+for example in examples:
+    try:
+        path = os.path.join(example)
+        img = Image.open(path).convert("RGB")
+        img = center_crop(img)
+        imgs.append(img)
+        # print("length of imgs: ", len(imgs))
+    except:
+        print(f"Disappear {path}")
+        sys.stdout.flush()
+
+    if len(imgs) == 128:
+
+        imgs = torch.stack(imgs).cuda()
+        with torch.no_grad():
+            features = model.forward_features(imgs)
+            if len(global_features) == 0:
+                global_features = features
+            else:
+                global_features = torch.cat((global_features, features))
+
+        imgs = []
+
+imgs = torch.stack(imgs).cuda()
+with torch.no_grad():
+    features = model.forward_features(imgs)
+    if len(global_features) == 0:
+        global_features = features
+    else:
+        global_features = torch.cat((global_features, features))
+
+features = global_features.cpu().numpy().astype(np.float32)
+
+save_file = os.path.join(save_dir, 'folder_support')
+np.savez(save_file, examples=examples, features=features)
+
+print('features shape: ', features.shape)
+
+examples = []
+for x in train_query.images:
+    examples.append(x.split('/')[-1][:-4])
+
+if len(examples) == 0:
+    print(f"zeros file.")
+    sys.stdout.flush()
+
+examples = [os.path.join(image_root, example.strip()+'.jpg') for example in examples]
+imgs = []
+
+global_features = torch.tensor([]).cuda()
+for example in examples:
+    try:
+        path = os.path.join(example)
+        img = Image.open(path).convert("RGB")
+        img = center_crop(img)
+        imgs.append(img)
+        # print("length of imgs: ", len(imgs))
+    except:
+        print(f"Disappear {path}")
+        sys.stdout.flush()
+
+    if len(imgs) == 128:
+
+        imgs = torch.stack(imgs).cuda()
+        with torch.no_grad():
+            features = model.forward_features(imgs)
+            if len(global_features) == 0:
+                global_features = features
+            else:
+                global_features = torch.cat((global_features, features))
+
+        imgs = []
+
+imgs = torch.stack(imgs).cuda()
+with torch.no_grad():
+    features = model.forward_features(imgs)
+    if len(global_features) == 0:
+        global_features = features
+    else:
+        global_features = torch.cat((global_features, features))
+
+features = global_features.cpu().numpy().astype(np.float32)
+
+save_file = os.path.join(save_dir, 'folder_query')
 np.savez(save_file, examples=examples, features=features)
 
 print('features shape: ', features.shape)

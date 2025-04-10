@@ -60,10 +60,6 @@ def get_args():
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
-    # train settings
-    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -96,9 +92,6 @@ def get_args():
 def _generate_raw_prediction(model, canvas_tokens, arr,args):
     """canvas is already in the right range."""
     ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
-    # ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
-    # print(ids_shuffle,ids_shuffle.shape,len_keep,len_keep.shape)
-    # assert False
     y_pred, mask = generate_raw_pred_for_train(canvas_tokens, model,
                                                 ids_shuffle.to(args.device),
                                                 len_keep, device=args.device)
@@ -113,53 +106,25 @@ def model_forward(model, support_img, support_mask, query_img, query_mask, grid,
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
         bz = support_features.shape[0]
-        # print(support_features.shape,query_features.shape)
         canvas_pred_tokens = torch.cat((support_features,query_features),dim=2)
         canvas_pred_tokens = canvas_pred_tokens.reshape(bz,196,1024)
         grid = grid.permute(1,0,2,3,4)
         grid = grid[0]
-        # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
         y_pred, mask = _generate_raw_prediction(model,canvas_pred_tokens, args.arr,args)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if args.dataset_type != 'pascal_det':
             canvas_label = (canvas_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
         N = canvas_label.shape[0]
-        loss_ce = 0
-        # print("y_pred min:", y_pred.min().item(), "y_pred max:", y_pred.max().item())
-        
+        loss_ce = 0        
         loss_ce = model.forward_loss(canvas_label[0],y_pred,mask)
-
         return loss_ce, canvas_pred_tokens, canvas_return_label
-
-# def forward(model, support_img, support_mask, query_img, query_mask, grid, imagenet_mean, imagenet_std):
-#     # canvas_label = grid.clone()
-#     canvas_label = grid.clone()
-#     # print("support_features min:", support_features.min().item(), "support_features max:", support_features.max().item())        
-#     # print("query_features min:", query_features.min().item(), "query_features max:", query_features.max().item())        
-
-#     grid = grid.permute(1,0,2,3,4)
-#     grid = grid[0]
-#     # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
-#     y_pred, mask = _generate_raw_prediction(model,grid, args.arr,args)
-#     canvas_label = canvas_label.permute(1,0,2,3,4)
-#     canvas_label = (canvas_label - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-#     N = canvas_label.shape[0]
-#     loss_ce = 0
-#     vq_tokens = vq_tokens.permute(1,0,2)
-#     # print("y_pred min:", y_pred.min().item(), "y_pred max:", y_pred.max().item())
-#     for sub_label in canvas_label:
-#         loss_ce += model.forward_loss(sub_label, y_pred, mask)
-#     loss_ce /= N
-#     canvas_pred = (canvas_pred - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-
-#     return loss_ce
 
 def train(args):
 
     setting = f'_lora_lr_{args.lr}_task_{args.task}'
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_lora_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_lora_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}_model/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}/fold_{args.fold}/simidx_{args.simidx}/{setting}'
 
 
     padding = 1
@@ -201,35 +166,20 @@ def train(args):
     vqgan = prepare_model(args.ckpt, arch=args.mae_model, vq_ckpt_dir=args.vq_ckpt_dir)
     print(args.device)
     vqgan.to(args.device)
-    # if args.vp_model == 'pad':
-    #     print('load pad prompter.')
-    #     VP = CustomVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr, p_eps=args.p_eps)
-    # if args.vp_model == 'Prompt':
-    #     print('load prompt generator')
-    #     VP = PGVP(args=args, vqgan=vqgan.to(args.device), mode=args.mode, arr=args.arr)
-    # else:
-    #     raise ValueError("Please check the mode of InMeMo!")
     total_parameters_lora = 0
-    # tot = 0
     scaler = GradScaler()
     for block in vqgan.blocks:
         for layer in [block.attn.qkv, block.attn.proj]:
             parametrize.register_parametrization(layer,"weight",linear_layer_parameterization(layer,args.device))
             total_parameters_lora += layer.parametrizations["weight"][0].lora_A.nelement() + layer.parametrizations["weight"][0].lora_B.nelement()
-            # tot = tot +1
-            # print('layer ',tot,' lora   ',layer.parametrizations["weight"][0].lora_A.nelement(),layer.parametrizations["weight"][0].lora_B.nelement())
             layer.parametrizations["weight"][0].enabled = True
-    # tot = 0
     for block in vqgan.decoder_blocks:
         for layer in [block.attn.qkv, block.attn.proj]:
             parametrize.register_parametrization(layer,"weight",linear_layer_parameterization(layer,args.device))
-            # tot = tot +1
-            # print('layer ',tot,' lora   ',layer.parametrizations["weight"][0].lora_A.nelement(),layer.parametrizations["weight"][0].lora_B.nelement())
             total_parameters_lora += layer.parametrizations["weight"][0].lora_A.nelement() + layer.parametrizations["weight"][0].lora_B.nelement()
             layer.parametrizations["weight"][0].enabled = True
 
     print('total para meter number ',total_parameters_lora)
-    # assert False
     for _, p in vqgan.named_parameters():
         p.requires_grad = False
     freeze_base_weights(vqgan)
@@ -240,12 +190,10 @@ def train(args):
     ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
     if os.path.exists(ckpt_path):
         checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
-        # state_dict = torch.load(, map_location=args.device)
         load_lora_state_dict(vqgan,checkpoint['visual_prompt_dict'])
-        # vqgan.load_state_dict(checkpoint["visual_prompt_dict"])
         optimizer.load_state_dict(checkpoint['optimizer_dict'])
-        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
-        best_iou = checkpoint['best_iou']  # 加载最佳 iou
+        begin_epoch = checkpoint['epoch'] + 1  
+        best_iou = checkpoint['best_iou'] 
         scheduler.load_state_dict(checkpoint['scheduler_dict'])
         scaler.load_state_dict(checkpoint['scaler_dict'])
         print(begin_epoch)
@@ -284,9 +232,7 @@ def train(args):
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']
-            # print("pre    ",support_features[0][0])
             query_img_features = data['query_img_features']
-            # vq_tokens = data['vq_tokens']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
             support_img = support_img.to(args.device, dtype=torch.float32)
@@ -294,11 +240,9 @@ def train(args):
             query_img = query_img.to(args.device, dtype=torch.float32)
             query_mask = query_mask.to(args.device, dtype=torch.float32)
             grid_stack = grid_stack.to(args.device, dtype=torch.float32)
-            # vq_tokens = vq_tokens.to(args.device,dtype=torch.long)
             optimizer.zero_grad()
             with autocast():
                 loss, canvas_pred_tokens, canvas_label = model_forward(vqgan,support_img, support_mask, query_img, query_mask, grid_stack, query_img_features,support_features,args,imagenet_mean,imagenet_std)
-                # print(loss)
                 scaled_loss = scaler.scale(loss)
             if torch.isnan(loss):
                 raise ValueError("nan error!")
@@ -323,23 +267,9 @@ def train(args):
                     generated_result = generated_result_list[index]
                     if args.task == 'detection':
                         generated_result = to_rectangle(generated_result)
-                    # if index == 0:
-                    #     image = TF.to_pil_image(generated_result_list[0])
-
-                    #     # # 保存图像
-                    #     image.save("result.jpg")
-                    # #    print(generated_result.shape)
-                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("final_result.jpg")
-                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("original_image.jpg")
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                    # print(current_metric)
                     for i, j in current_metric.items():
                         train_eval_dict[i] += (j / len(train_dataset))
-            # assert False
         print('val metric: {}'.format(train_eval_dict))
         train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
 
@@ -364,22 +294,17 @@ def train(args):
         # Validation phase
         for i, data in enumerate(tqdm(dataloaders["val"])):
             len_dataloader = len(dataloaders["val"])
-            ##my code
             support_features = data['support_features']
             query_img_features = data['query_img_features']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-            ##end my code
             support_img, support_mask, query_img, query_mask, grid_stack = \
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
-            # vq_tokens = data['vq_tokens']
             support_img = support_img.to(args.device, dtype=torch.float32)
             support_mask = support_mask.to(args.device, dtype=torch.float32)
             query_img = query_img.to(args.device, dtype=torch.float32)
             query_mask = query_mask.to(args.device, dtype=torch.float32)
             grid_stack = grid_stack.to(args.device, dtype=torch.float32)
-            # vq_tokens = vq_tokens.to(args.device,dtype=torch.long)
-
             _, canvas_pred_tokens, canvas_label = model_forward(vqgan,support_img, support_mask, query_img, query_mask, grid_stack, 
                                 query_img_features, support_features,args,imagenet_mean,imagenet_std)
 
@@ -398,19 +323,6 @@ def train(args):
                 if args.save_examples:
                     Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                         examples_save_path + f'generated_image_{image_number}.png')
-                # if index == 0:
-                #     image = TF.to_pil_image(generated_result_list[0])
-
-                #     # # 保存图像
-                #     image.save("result.jpg")
-                # #    print(generated_result.shape)
-                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                #     # # 保存图像
-                #     image.save("final_result.jpg")
-                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                #     # # 保存图像
-                #     image.save("original_image.jpg")
-
                 current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                 with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                     log.write(str(image_number) + '\t' + str(current_metric) + '\n')

@@ -18,8 +18,6 @@ from omegaconf import OmegaConf
 from models.vqgan import VQModel
 
 def load_maevq(chkpt_dir = './weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
-    #vq = prepare_model(args.ckpt, arch=args.mae_model)
-    # build model
     model = getattr(models_mae, arch)()
     # load model
     full_path = os.path.join(basedir, chkpt_dir)
@@ -49,8 +47,6 @@ model = load_maevq()
 model = model.eval()
 model = model.to(cudaid)
 
-# datapath = './pascal-5i'
-
 if split == 'trn':
     img_path = './imagenet/train_data'
     ann_path = './imagenet/train_label'
@@ -59,14 +55,10 @@ else :
     ann_path = './imagenet/test_label'
 img_path = os.path.join(basedir, img_path)
 ann_path = os.path.join(basedir, ann_path)
-# features_dir = f"./pascal-5i/VOC2012/{features_name}_{split}"
-# meta_root = f"./evaluate/splits/pascal/{split}"
-
-# transform = T.Compose([T.Resize((224, 224), 3),T.ToTensor()])
 transform = T.Compose([
-    T.Lambda(lambda img: img.convert('RGB')),  # 确保图像是RGB格式
-    T.Resize((224, 224)),  # 调整图像大小为224x224
-    T.ToTensor(),  # 将PIL图像或Numpy数组转换为Tensor
+    T.Lambda(lambda img: img.convert('RGB')),
+    T.Resize((224, 224)), 
+    T.ToTensor(),  
 ])
 imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).to(cudaid)
 imagenet_std = torch.tensor([0.229, 0.224, 0.225]).to(cudaid)
@@ -82,14 +74,9 @@ features_dir = os.path.join(basedir, features_dir)
 
 examples = [os.path.join(image_root, file) for file in os.listdir(image_root)]
 
-    # with open(os.path.join(meta_root, 'fold'+str(foldid)+'.txt')) as f:
-    #     examples = f.readlines()
-
 if len(examples) == 0:
     print(f"zeros folder ...")
     sys.stdout.flush()
-
-# examples = [[data.split('__')[0] , int(data.split('__')[1]) - 1] for data in examples]
         
 imgs = []
 masks = []
@@ -104,7 +91,6 @@ for k,example in enumerate(examples):
     if k%100==0:
         print(k)
     cmask = read_img(img_name = img_name)
-    # _mask, ignore_idx = extract_ignore_idx(cmask, class_id=class_id)
     _mask = transform(cmask).to(cudaid)
     mask = torch.zeros((3,224,224))
     mask[:,:,:] = _mask
@@ -123,17 +109,9 @@ for k,example in enumerate(examples):
         cats[:, :, :img_size, -img_size:] = masks
         cats[:, :, -img_size:, -img_size:] = masks
         cats = (cats - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-        # image = TF.to_pil_image(cats[31])
-        # print(img_name)
-        # # # 保存图像
-        # image.save("cat.jpg")
-        # print(cats.shape)
-        # assert False
         with torch.no_grad():
             img_features = model.patch_embed(cats)
             img_features = img_features + model.pos_embed[:,1:,:]
-            # print(img_features[0])
-            # assert False
             img_features = img_features.to('cpu')
             if len(img_global_features) == 0:
                 img_global_features = img_features

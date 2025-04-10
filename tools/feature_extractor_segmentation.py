@@ -51,10 +51,6 @@ center_crop = T.Compose(t)
 save_dir = f"./pascal-5i/VOC2012/{feature_name}_{split}"
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
-# else:
-#     print(f"Directory exists at {save_dir}")
-#     sys.exit()
-
 
 meta_root = f"./splits/pascal/{split}"
 image_root = "./pascal-5i/VOC2012/JPEGImages"

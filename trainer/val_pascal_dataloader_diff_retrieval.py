@@ -46,23 +46,16 @@ class DatasetPASCAL(Dataset):
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
-        ##my code
         self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
         self.img_feature_for_val_path = os.path.join(datapath, f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
-        ##end my code
         self.images_top50_val = self.get_top50_images_for_validation()
         self.images_top50_trn = self.get_top50_images_trn()
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
-        self.cache = {}
 
     def __len__(self):
-        # return 1000
-        # if self.cls_base:
         return len(self.img_metadata_val)
-        # else:
-        #     return 1000
 
     def get_top50_images_for_validation(self):
         print('feature name for val: ', self.feature_name[:-4] + '_val')
@@ -212,67 +205,51 @@ class DatasetPASCAL(Dataset):
         return canvas_list
 
     def __getitem__(self, idx):
-        if idx in self.cache and self.cache[idx]['valid']:
-            # print("Cache hit for index:", idx)
-            return self.cache[idx]['batch']
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
         grid_stack = torch.tensor([]) 
-        #my code
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
-        #end my code
         for sim_idx in range(self.simidx):
-            if sim_idx == 0:
-                query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
-                query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
-                                                                                                    support_name)
-                if self.image_transform:
-                    query_img = self.image_transform(query_img)
-                    query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
-                                                                        purple=self.purple)
-                if self.mask_transform:
-                    query_mask = self.mask_transform(query_mask)
+            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
+            query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
+                                                                                                support_name)
+            if self.image_transform:
+                query_img = self.image_transform(query_img)
+                query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
+                                                                    purple=self.purple)
+            if self.mask_transform:
+                query_mask = self.mask_transform(query_mask)
 
-                if self.image_transform:
-                    support_img = self.image_transform(support_img)
-                support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
-                                                                        purple=self.purple)
+            if self.image_transform:
+                support_img = self.image_transform(support_img)
+            support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
+                                                                    purple=self.purple)
 
-                if self.mask_transform:
-                    support_mask = self.mask_transform(support_mask)
+            if self.mask_transform:
+                support_mask = self.mask_transform(support_mask)
 
-                if self.arr != 'ensemble':
-                    grid = self.create_gradiant_grid_images(support_img, support_mask, query_img, query_mask, self.arr)
+            if self.arr != 'ensemble':
+                grid = self.create_gradiant_grid_images(support_img, support_mask, query_img, query_mask, self.arr)
 
-                else:
-                    grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-                query_img_features, support_features = self.load_feature(query_name,support_name)
-                query_img_features = torch.tensor(query_img_features).unsqueeze(0)
-                support_features = torch.tensor(support_features).unsqueeze(0)
-                if len(grid_stack) == 0:
-                    grid_stack = grid
             else:
-                _query_name, _support_name, _class_sample_query, _class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
-                query_img_feature, support_feature = self.load_feature(_query_name,_support_name)
-                support_feature = torch.tensor(support_feature).unsqueeze(0)
-                support_features = torch.cat((support_features,support_feature))
+                grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
+            query_img_feature, support_feature = self.load_feature(query_name,support_name)
+            grid_stack = grid
+            if query_img_features.numel() == 0:
+                query_img_features = query_img_feature.unsqueeze(0)
+            if support_features.numel() == 0:
+                support_features = support_feature.unsqueeze(0)
+            else:
+                support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
                 
-        #my annation
-#        else:
-#            grid_stack = torch.cat((grid_stack, grid))
-        #end my annation
-        # print('grid stack: ', grid_stack.shape)
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
                  'support_img': support_img,
                  'support_mask': support_mask,
                  'grid_stack': grid_stack,
-                ##my code
                  'query_img_features': query_img_features,
                  'support_features': support_features
-                ##end my code
                  }
-        self.cache[idx] = {'valid': True, 'batch': batch}
 
         return batch
 
@@ -301,14 +278,12 @@ class DatasetPASCAL(Dataset):
         org_qry_imsize = query_img.size
 
         return query_img, query_mask, support_img, support_mask, org_qry_imsize
-    #my code
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:
             support_feature = f[support_name][...]
         with h5py.File(self.img_feature_for_val_path, "r") as f:
             query_img_feature = f[query_name][...]
         return query_img_feature,support_feature
-    #end my code
     def read_mask(self, img_name):
         r"""Return segmentation mask in PIL Image"""
         mask = Image.open(os.path.join(self.ann_path, img_name) + '.png')

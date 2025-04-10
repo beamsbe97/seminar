@@ -36,13 +36,6 @@ target_examples = target_file_npz["examples"].tolist()
 source_features = source_file_npz["features"].astype(np.float32)
 target_features = target_file_npz["features"].astype(np.float32)
 
-# print(target_examples)
-
-# print('./pascal-5i/VOC2012/JPEGImages/2011_002767.jpg' in target_examples)
-# print('./pascal-5i/VOC2012/JPEGImages/2008_002399.jpg' in target_examples)
-
-# assert False
-
 source_features = source_features.reshape(source_features.shape[0], -1)
 target_features = target_features.reshape(target_features.shape[0], -1)
 
@@ -59,17 +52,11 @@ print("similarity_idx shape: ", similarity_idx.shape)
 # assert False
 similarity_idx_dict = {}
 for _, (cur_example, cur_similarity) in enumerate(zip(source_examples, similarity_idx)):
-    # print("cur_example: ", cur_example)
     img_name = cur_example.strip().split('/')[-1][:-4]
-    # print("img_name: ", img_name)
 
     cur_similar_name = list(target_examples[target_sample_idx[idx]].strip().split('/')[-1][:-4] for idx in cur_similarity[::-1])
-    # print('debug    ',len(cur_similar_name))
-    # print(cur_similar_name)
     cur_similar_name = list(dict.fromkeys(cur_similar_name))
-    # print('debug    ',len(cur_similar_name))
     assert len(cur_similar_name) >= 50, "num of cur_similar_name is too small, please enlarge the similarity_idx size"
-    # assert False
     if source_split == 'val' :
         # select top50 prompt pairs for each sample.
         if img_name not in similarity_idx_dict:

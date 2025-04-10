@@ -65,51 +65,15 @@ class DatasetPASCAL(Dataset):
         # self.images_top50_val = self.get_top50_images_val()
         self.images_top50_trn = self.get_top50_images_trn()
         self.images_top50_for_training = self.get_top50_images_for_training()
-        ##my code
         self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
         self.support_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
-        ##end my code
-        #my code
-    #    self.img_features_for_training = self.get_img_vqgan_feature_for_training()
-    #    self.mask_features_for_training = self.get_mask_vqgan_feature_for_training()
-        #end my code
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
-        self.cache = {}
 
     def __len__(self):
         return len(self.img_metadata_trn) if self.split == 'trn' else 1000
-    ##my code
-    # def get_img_vqgan_feature_for_training(self):
-    #     with open(f"./pascal-5i/VOC2012/{self.feature_name}/folder{self.fold}_img_features_by_vqgan_encoder.json") as f:
-    #         images_features = json.load(f)
-        
-    #     images_features_new = {}
-    #     for img_name, img_class in self.img_metadata_trn:
-    #         if img_name not in images_features_new:
-    #             images_features_new[img_name] = {}
-            
-    #         images_features_new[img_name]['feature'] = images_features[img_name]
-    #         images_features_new[img_name]['class'] = img_class
 
-    #     return images_features_new
-    
-    # def get_mask_vqgan_feature_for_training(self):
-    #     with open(f"./pascal-5i/VOC2012/{self.feature_name}/folder{self.fold}_mask_features_by_vqgan_encoder.json") as f:
-    #         images_features = json.load(f)
-        
-    #     images_features_new = {}
-    #     for img_name, img_class in self.img_metadata_trn:
-    #         if img_name not in images_features_new:
-    #             images_features_new[img_name] = {}
-            
-    #         images_features_new[img_name]['feature'] = images_features[img_name]
-    #         images_features_new[img_name]['class'] = img_class
-
-    #     return images_features_new
-    
-    ##end my code
     def get_top50_images_for_training(self):
         with open(f"{self.pascal_pat}/VOC2012/{self.feature_name}/folder{self.fold}_top_50-similarity.json") as f:
             images_top50 = json.load(f)
@@ -258,137 +222,64 @@ class DatasetPASCAL(Dataset):
 
     def __getitem__(self, idx):
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
-        if idx in self.cache and self.cache[idx]['valid']:
-            # print("Cache hit for index:", idx)
-            return self.cache[idx]['batch']
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
         support_masks = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
-        #end my code
         for sim_idx in range(self.simidx):
-            if sim_idx == 0:
-                query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
-                query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
-                                                                                                    support_name)
-                name = query_name
-                if self.image_transform:
-                    query_img = self.image_transform(query_img)
-                    query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
-                                                                        purple=self.purple)
-                if self.mask_transform:
-                    query_mask = self.mask_transform(query_mask)
+            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
+            query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
+                                                                                                support_name)
+            name = query_name
+            if self.image_transform:
+                query_img = self.image_transform(query_img)
+                query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
+                                                                    purple=self.purple)
+            if self.mask_transform:
+                query_mask = self.mask_transform(query_mask)
 
-                if self.image_transform:
-                    support_img = self.image_transform(support_img)
-                support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
-                                                                        purple=self.purple)
+            if self.image_transform:
+                support_img = self.image_transform(support_img)
+            support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
+                                                                    purple=self.purple)
 
-                if self.mask_transform:
-                    support_mask = self.mask_transform(support_mask)
+            if self.mask_transform:
+                support_mask = self.mask_transform(support_mask)
 
-                if self.arr != 'ensemble':
-                    grid = self.create_gradiant_grid_images(support_img, support_mask, query_img, query_mask, self.arr)
-
-                else:
-                    grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-                query_img_features, support_features = self.load_feature(query_name,support_name)
-                query_img_features = torch.tensor(query_img_features).unsqueeze(0)
-                support_features = torch.tensor(support_features).unsqueeze(0)
-                support_imgs = support_img.unsqueeze(0)
-                support_masks = support_mask.unsqueeze(0)
-                grids = grid.unsqueeze(0)
+            if self.arr != 'ensemble':
+                grid = self.create_gradiant_grid_images(support_img, support_mask, query_img, query_mask, self.arr)
 
             else:
-                _query_name, _support_name, _class_sample_query, _class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
-                _, _, support_img, support_cmask, org_qry_imsize = self.load_frame(_query_name,_support_name)
-                if self.image_transform:
-                    support_img = self.image_transform(support_img)
-                support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,purple=self.purple)
-                if self.mask_transform:
-                    support_mask = self.mask_transform(support_mask)
-                if self.arr != 'ensemble':
-                    grid = self.create_gradiant_grid_images(support_img, support_mask, query_img, query_mask, self.arr)
-                support_img = support_img.unsqueeze(0)
-                support_mask = support_mask.unsqueeze(0)
-                grid = grid.unsqueeze(0)
-                query_img_feature,  support_feature = self.load_feature(_query_name,_support_name)
-                support_feature = torch.tensor(support_feature).unsqueeze(0)
-                support_features = torch.cat((support_features,support_feature))
-                support_imgs = torch.cat((support_imgs,support_img))
-                support_masks = torch.cat((support_masks,support_mask))
-                grids = torch.cat((grids,grid))
-        #my annation
-#        else:
-#            grid_stack = torch.cat((grid_stack, grid))
-        #end my annation
-        # print('grid stack: ', grid_stack.shape)
+                grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
+            query_img_features, support_feature = self.load_feature(query_name,support_name)
+            if support_features.numel() == 0:
+                support_features = support_feature.unsqueeze(0)
+            else:
+                support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
+            query_img_features = torch.tensor(query_img_features).unsqueeze(0)
+            if support_img.numel() == 0:
+                support_imgs = support_img.unsqueeze(0)
+            else:
+                support_imgs = torch.cat((support_imgs, support_img.unsqueeze(0)), dim=0)
+            if support_mask.numel() == 0:
+                support_masks = support_mask.unsqueeze(0)
+            else:
+                support_masks = torch.cat((support_masks, support_mask.unsqueeze(0)), dim=0)
+            if grid.numel() == 0:
+                grids = grid.unsqueeze(0)
+            else:
+                grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
+
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
                  'support_imgs': support_imgs,
                  'support_masks': support_masks,
                  'grids': grids,
                  'name': name,
-                ##my code
                  'query_img_features': query_img_features,
                  'support_features': support_features
-                ##end my code
                  }
-
-        # for sim_idx in range(1):
-        #     query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx)
-        #     query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
-        #                                                                                          support_name)
-        #     ##my code
-        #     query_img_feature, query_mask_feature, support_img_feature, support_mask_feature = self.load_feature(query_name,support_name)
-        #     ##end my code
-        #     if self.image_transform:
-        #         query_img = self.image_transform(query_img)
-        #         query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
-        #                                                                purple=self.purple)
-        #     if self.mask_transform:
-        #         query_mask = self.mask_transform(query_mask)
-
-        #     # The support image no need for transformation.
-        #     if self.image_transform:
-        #         support_img = self.image_transform(support_img)
-        #     support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
-        #                                                                purple=self.purple)
-        #     if self.mask_transform:
-        #         support_mask = self.mask_transform(support_mask)
-
-        #     if self.arr != 'ensemble':
-        #         grid = self.create_gradiant_grid_images(support_img, support_mask, query_img, query_mask, self.arr)
-
-        #         # for i in range(len(grid)):
-        #         #     grid[i] = grid[i].unsqueeze(0)
-        #     else:
-        #         grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-        #         # grid = grid.unsqueeze(0)
-
-        #     # print("canvas_list: ", grid)
-        #     # print("length of canvas_list: ", grid.shape)
-
-        #     if len(grid_stack) == 0:
-        #         grid_stack = grid
-        #     else:
-        #         grid_stack = torch.cat((grid_stack, grid))
-        # #print(query_img_feature.shape)
-        # # print('grid stack: ', grid_stack.shape)
-        # batch = {'query_img': query_img,
-        #          'query_mask': query_mask,
-        #          'support_img': support_img,
-        #          'support_mask': support_mask,
-        #          'grid_stack': grid_stack,
-        #         ##my code
-        #          'query_img_feature': query_img_feature,
-        #          'query_mask_feature': query_mask_feature,
-        #          'support_img_feature': support_img_feature,
-        #          'support_mask_feature': support_mask_feature,
-        #         ##end my code
-        #         }
-        self.cache[idx] = {'valid': True, 'batch': batch}
 
         return batch
 
@@ -418,16 +309,12 @@ class DatasetPASCAL(Dataset):
         org_qry_imsize = query_img.size
 
         return query_img, query_mask, support_img, support_mask, org_qry_imsize
-    #my code
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:
             query_img_feature = f[query_name][...]
         with h5py.File(self.support_feature_for_train_path, "r") as f:
             support_feature = f[support_name][...]
-        #print("debug        ")
-        #print(support_img_feature-support_mask_feature)
         return query_img_feature,support_feature
-    #end my code
     def read_mask(self, img_name):
         r"""Return segmentation mask in PIL Image"""
         mask = Image.open(os.path.join(self.ann_path, img_name) + '.png')

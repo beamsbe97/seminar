@@ -17,26 +17,6 @@ import torchvision.transforms.functional as TF
 from torch import autograd
 
 # matplotlib.use('TkAgg')
-from utils import Monitor
-def get_last_epoch(logs_dir):
-    """
-    获取最后一个epoch的编号。如果当前epoch的日志文件未完成,则返回上一个epoch编号。
-    """
-    log_files = sorted([f for f in os.listdir(logs_dir) if f.startswith('_') and f.endswith('log.txt')],
-                       key=lambda x: int(x.split('_')[1].split('/')[0]))
-
-    if not log_files:
-        return None  # 如果没有找到日志文件，返回None
-
-    last_log_file = os.path.join(logs_dir, log_files[-1])
-    with open(last_log_file, 'r') as f:
-        lines = f.readlines()
-    
-    if lines and lines[-1].startswith('best'):
-        return int(log_files[-1].split('_')[1].split('/')[0])
-    else:
-        return int(log_files[-1].split('_')[1].split('/')[0]) - 1
-
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)
@@ -71,10 +51,6 @@ def get_args():
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--kernel_size',default=3,type=int)
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
-    # train settings
-    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -109,13 +85,9 @@ def get_args():
 
 
 def train(args):
-    # os.environ["CUDA_VISIBLE_DEVICES"] = '5'
-    # args.device = 'cuda:0'
-    # print(args.sigma)
     setting = f'_lr_{args.lr}_task_{args.task}'
-    # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
@@ -173,11 +145,10 @@ def train(args):
     ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
     if os.path.exists(ckpt_path):
         checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
-        # state_dict = torch.load(, map_location=args.device)
         VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
         optimizer.load_state_dict(checkpoint['optimizer_dict'])
-        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
-        best_iou = checkpoint['best_iou']  # 加载最佳 iou
+        begin_epoch = checkpoint['epoch'] + 1  
+        best_iou = checkpoint['best_iou']  
         scheduler.load_state_dict(checkpoint['scheduler_dict'])
         scaler.load_state_dict(checkpoint['scaler_dict'])
         print(begin_epoch)
@@ -202,7 +173,6 @@ def train(args):
     lr_list = []
     val_iou_list = []
     min_loss = 100.0
-    # with torch.autograd.detect_anomaly():
 
     for epoch in range(begin_epoch, args.epoch + 1):
         epoch_loss = 0.0
@@ -218,7 +188,6 @@ def train(args):
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']
-            # print("pre    ",support_features[0][0])
             query_img_features = data['query_img_features']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
@@ -240,55 +209,9 @@ def train(args):
             scaler.step(optimizer)
             scaler.update()
 
-            # loss.backward()
-            # max_norm = 0.0
-            # parameters = VP.PromptGenerator.named_parameters()
-            # for name,p in parameters:
-            #     if p.grad is not None:
-            #         param_norm = p.grad.data.norm(2)
-            #         print(f"Parameter name: {name}")
-
-            #         print(p)
-            #         print(param_norm)
-            #         if param_norm > max_norm:
-            #             max_norm = param_norm
-
-            # print(f'当前梯度的最大范数: {max_norm}')
-
-            # if epoch>80:
-            #     torch.nn.utils.clip_grad_norm_(VP.parameters(), max_norm=1.0)
-            # optimizer.step()
-            # scaler.update()
-
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
 
-        #     original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
-        #                                                                             canvas_pred_tokens, canvas_label,
-        #                                                                             args.arr)
-        #     for index in range(len(original_image_list)):
-        #         sub_image = generated_result_list[index][113:, 113:]
-        #         sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
-        #         generated_result_list[index][113:, 113:] = sub_image
-
-        #         original_image = round_image(original_image_list[index], [WHITE, BLACK])
-        #         generated_result = generated_result_list[index]
-        #         if args.task == 'detection':
-        #             generated_result = to_rectangle(generated_result)
-        #         # if index == 0:
-        #         #     image = TF.to_pil_image(generated_result_list[0])
-        #         #      # # 保存图像
-        #         #     image.save("result.jpg")
-        #         #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-        #         #     image.save("final_result.jpg")
-        #         #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-        #         #     image.save("original_image.jpg")
-        #         current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-                
-        #         for i, j in current_metric.items():
-        #             train_eval_dict[i] += (j / len(train_dataset))
-        # print('val metric: {}'.format(train_eval_dict))
-        # train_eval_dict = {'iou': 0, 'color_blind_iou': 0, 'accuracy': 0}
         scheduler.step()
 
         average_epoch_loss = epoch_loss / len_dataloader
@@ -342,19 +265,6 @@ def train(args):
                     if args.save_examples:
                         Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                             examples_save_path + f'generated_image_{image_number}.png')
-                    # if index == 0:
-                    #     image = TF.to_pil_image(generated_result_list[0])
-
-                    #     # # 保存图像
-                    #     image.save("result.jpg")
-                    # #    print(generated_result.shape)
-                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("final_result.jpg")
-                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("original_image.jpg")
-
                     current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')

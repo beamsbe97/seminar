@@ -16,8 +16,6 @@ from evaluate_detection.box_ops import to_rectangle
 import torchvision.transforms.functional as TF
 
 # matplotlib.use('TkAgg')
-from utils import Monitor
-
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)
@@ -51,10 +49,6 @@ def get_args():
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
-    # train settings
-    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -78,13 +72,11 @@ def get_args():
 
 
 def train(args):
-    # os.environ["CUDA_VISIBLE_DEVICES"] = '5'
-    # args.device = 'cuda:0'
-    # print(args.sigma)
+
     setting = f'_lr_{args.lr}_task_{args.task}'
 
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}_model/sigma_{args.sigma}/{setting}'
-    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}/sigma_{args.sigma}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}_model/{setting}'
+    eg_save_path = f'{args.output_dir}/task_{args.task}_{args.choice}/fold_{args.fold}/simidx_{args.simidx}/{setting}'
 
     padding = 1
     image_transform = torchvision.transforms.Compose(
@@ -183,7 +175,6 @@ def train(args):
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']
-            # print("pre    ",support_features[0][0])
             query_img_features = data['query_img_features']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
@@ -203,7 +194,6 @@ def train(args):
 
             scaled_loss.backward()
             scaler.step(optimizer)
-            # torch.nn.utils.clip_grad_norm_(VP.PromptGenerator.parameters(), max_norm=0.1)
             scaler.update()
 
             epoch_loss += loss.detach()
@@ -221,14 +211,6 @@ def train(args):
                 generated_result = generated_result_list[index]
                 if args.task == 'detection':
                     generated_result = to_rectangle(generated_result)
-                # if index == 0:
-                #     image = TF.to_pil_image(generated_result_list[0])
-                #      # # 保存图像
-                #     image.save("result.jpg")
-                #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                #     image.save("final_result.jpg")
-                #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                #     image.save("original_image.jpg")
                 current_metric = calculate_metric(args, original_image, torch.tensor(generated_result), fg_color=WHITE, bg_color=BLACK)
                 
                 for i, j in current_metric.items():
@@ -288,19 +270,6 @@ def train(args):
                     if args.save_examples:
                         Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                             examples_save_path + f'generated_image_{image_number}.png')
-                    # if index == 0:
-                    #     image = TF.to_pil_image(generated_result_list[0])
-
-                    #     # # 保存图像
-                    #     image.save("result.jpg")
-                    # #    print(generated_result.shape)
-                    #     image = TF.to_pil_image((generated_result/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("final_result.jpg")
-                    #     image = TF.to_pil_image((original_image/255).permute(2,0,1))
-                    #     # # 保存图像
-                    #     image.save("original_image.jpg")
-
                     current_metric = calculate_metric(args, original_image, torch.tensor(generated_result), fg_color=WHITE, bg_color=BLACK)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')

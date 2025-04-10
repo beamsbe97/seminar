@@ -15,8 +15,6 @@ from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
 
 # matplotlib.use('TkAgg')
-from utils import Monitor
-
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for coloring', add_help=False)
@@ -49,8 +47,6 @@ def get_args():
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
     parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
 
@@ -104,13 +100,9 @@ def convert_to_rgb(image):
     return image
 
 def train(args):
-    # os.environ["CUDA_VISIBLE_DEVICES"] = '5'
-    # args.device = 'cuda:0'
-
     setting = f'_lr_{args.lr}_task_{args.task}'
-    # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
@@ -165,11 +157,10 @@ def train(args):
     ckpt_path = os.path.join(model_save_path, 'ckpt.pth')
     if os.path.exists(ckpt_path):
         checkpoint = torch.load(os.path.join(model_save_path, 'ckpt.pth'),map_location=args.device)
-        # state_dict = torch.load(, map_location=args.device)
         VP.PromptGenerator.load_state_dict(checkpoint["visual_prompt_dict"])
         optimizer.load_state_dict(checkpoint['optimizer_dict'])
-        begin_epoch = checkpoint['epoch'] + 1  # 新的 epoch 数值
-        best_mse = checkpoint['best_mse']  # 加载最佳 iou
+        begin_epoch = checkpoint['epoch'] + 1  
+        best_mse = checkpoint['best_mse']  
         scheduler.load_state_dict(checkpoint['scheduler_dict'])
         scaler.load_state_dict(checkpoint['scaler_dict'])
         print(begin_epoch)
@@ -191,7 +182,6 @@ def train(args):
     lr_list = []
     val_mse_list = []
     min_loss = 100.0
-    # scaler = GradScaler()
 
     for epoch in range(begin_epoch, args.epoch + 1):
         epoch_loss = 0.0
@@ -207,7 +197,6 @@ def train(args):
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']
-            # print("pre    ",support_features[0][0])
             query_img_features = data['query_img_features']
             support_features = support_features.to(args.device, dtype=torch.float32)
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
@@ -227,7 +216,6 @@ def train(args):
             scaled_loss.backward()
             scaler.step(optimizer)
             scaler.update()
-            # scaler.update()
 
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
@@ -240,7 +228,6 @@ def train(args):
                 original_image = original_image_list[index]
                 if index == 0:
                     image = TF.to_pil_image(generated_result_list[0])
-                     # # 保存图像
                     image.save("result.jpg")
                     image = TF.to_pil_image((original_image))
                     image.save("original_image.jpg")
@@ -291,21 +278,11 @@ def train(args):
                                                                                      canvas_pred_tokens, canvas_label,
                                                                                      args.arr)
                 for index in range(len(original_image_list)):
-                    # original_image = round_image(original_image_list[index], [WHITE, BLACK])
                     generated_result = generated_result_list[index]
                     original_image = original_image_list[index]
                     if args.save_examples:
                         Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                             examples_save_path + f'generated_image_{image_number}.png')
-                    # if index == 0:
-                    #     image = TF.to_pil_image(generated_result_list[0])
-
-                    #     # # 保存图像
-                    #     image.save("result.jpg")
-                    # #    print(generated_result.shape)
-                    #     image = TF.to_pil_image((original_image))
-                    #     # # 保存图像
-                    #     image.save("original_image.jpg")
 
                     current_metric = calculate_mse(original_image, generated_result)
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:

@@ -50,10 +50,6 @@ def get_args():
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--fsl', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    parser.add_argument('--sigma', default=0.1, type=float)
-
-    # training settings
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -76,7 +72,7 @@ def get_args():
     # Number of images for few-shot training
     parser.add_argument("--n-shot", type=int, default=16,
                         help="Number of images for fsl.")
-    parser.add_argument("--choice", type=str, default='Conv',
+    parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=0)
@@ -151,14 +147,10 @@ def test_for_generate_results(args):
 
     # Inference phase
     for i, data in enumerate(tqdm(dataloaders["val"])):
-        len_dataloader = len(dataloaders["val"])
-        # print('len dataloader: ', len_dataloader)
-        ##my code
         support_features = data['support_features']
         query_img_features = data['query_img_features']
         support_features = support_features.to(args.device, dtype=torch.float32)
         query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-        ##end my code
         support_img, support_mask, query_img, query_mask, grid_stack = \
             data['support_img'], data['support_mask'], data['query_img'], data['query_mask'], data['grid_stack']
         support_img = support_img.to(args.device, dtype=torch.float32)
@@ -175,8 +167,6 @@ def test_for_generate_results(args):
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
 
-            # Image.fromarray(original_image_list[index]).save(
-            #     examples_save_path + f'original_image_{image_number}.png')
             Image.fromarray(generated_result_list[index]).save(
                 examples_save_path + f'generated_image_{image_number}.png')
 
@@ -184,16 +174,13 @@ def test_for_generate_results(args):
             generated_result = round_image(generated_result_list[index], [WHITE, BLACK], t=args.t)
 
             current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
-            # print('current_metric: ', current_metric)
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
-                # log.write(str(idx) + '\t' + str(current_metric) + '\n')
                 log.write(str(image_number) + '\t' + str(current_metric) + '\n')
             image_number += 1
 
             for i, j in current_metric.items():
                 eval_dict[i] += (j / len(val_dataset))
 
-        # print('eval_dict: ', eval_dict)
     print('val metric: {}'.format(eval_dict))
     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
         log.write('all\t' + str(eval_dict) + '\n')

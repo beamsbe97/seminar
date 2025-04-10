@@ -47,10 +47,6 @@ def get_args():
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--kernel_size',default=7,type=int)
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
-    # parser.add_argument('--sigma', default=[0.1, 0.3, 0.5, 0.7, 1.0, 1.3, 1.7, 2.0], type=float, nargs=8, help='A list of four float numbers')
-    # parser.add_argument('--sigma', default=[1.0], type=float, nargs=4, help='A list of four float numbers')
-    # train settings
-    parser.add_argument('--sigma', default=0.1, type=float)
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -67,7 +63,7 @@ def get_args():
                         help="Number of mae weight hyperparameter,[0, 1].")
     parser.add_argument("--vp-model", type=str, default='pad',
                         help="pad prompter.")
-    parser.add_argument("--choice", type=str, default='Conv',
+    parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=0)
@@ -87,13 +83,6 @@ def get_args():
     return parser
 
 def test_for_generate_results(args):
-
-    # setting = f'_lr_{args.lr}_task_{args.task}'
-    # # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
-    # task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    # key_hype = f'sigma_{args.sigma}_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
-    # model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
-    # eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
     padding = 1
     image_transform = torchvision.transforms.Compose(
@@ -149,18 +138,11 @@ def test_for_generate_results(args):
 
     image_number = 0
 
-    # Validation phase
     for i, data in enumerate(tqdm(dataloaders["val"])):
-        # print(i)
-        # # if i != 14:
-        # #     continue
-        len_dataloader = len(dataloaders["val"])
-        ##my code
         support_features = data['support_features']
         query_img_features = data['query_img_features']
         support_features = support_features.to(args.device, dtype=torch.float32)
         query_img_features = query_img_features.to(args.device, dtype=torch.float32)
-        ##end my code
         support_img, support_mask, query_img, query_mask, grid_stack =\
             data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
         support_img = support_img.to(args.device, dtype=torch.float32)
@@ -168,33 +150,12 @@ def test_for_generate_results(args):
         query_img = query_img.to(args.device, dtype=torch.float32)
         query_mask = query_mask.to(args.device, dtype=torch.float32)
         grid_stack = grid_stack.to(args.device, dtype=torch.float32)
-        # print(data['name'])
         _, canvas_pred_tokens, canvas_label = VP(support_img, support_mask, query_img, query_mask, grid_stack, 
                         query_img_features,support_features)
-        # print(canvas_label.shape)
-        # image = TF.to_pil_image(support_img[0][0])
-        #              # # 保存图像
-        # image.save("debug1.jpg")
-        # image = TF.to_pil_image(support_mask[0][0])
-        #              # # 保存图像
-        # image.save("debug2.jpg")
-        # image = TF.to_pil_image(query_img[0])
-        #              # # 保存图像
-        # image.save("debug3.jpg")
-        # image = TF.to_pil_image(query_mask[0])
-        #              # # 保存图像
-        # image.save("debug4.jpg")
-        # image = TF.to_pil_image(canvas_label[0])
-        #              # # 保存图像
-        # image.save("debug.jpg")
-
-        # assert False
 
         original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
                                                                                  canvas_pred_tokens, canvas_label, args.arr)
         for index in range(len(original_image_list)):
-            # Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
-
             sub_image = generated_result_list[index][113:, 113:]
             sub_image = round_image(sub_image, [WHITE, BLACK], t=args.t)
             generated_result_list[index][113:, 113:] = sub_image
@@ -205,12 +166,8 @@ def test_for_generate_results(args):
                 generated_result = to_rectangle(generated_result)
             print(generated_result.shape)
             Image.fromarray(generated_result.cpu().numpy()).save(examples_save_path + f'generated_image_{image_number}.png')
-            image = TF.to_pil_image(generated_result.permute(2,0,1))
-            # image.save("debuggggg.jpg")
-
             Image.fromarray((generated_result.cpu().numpy()).astype(np.uint8)).save(
                 examples_save_path + f'generated_image_{image_number}.png')
-            # assert False
             current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
 
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:

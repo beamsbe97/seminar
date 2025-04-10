@@ -208,27 +208,12 @@ class MaskedAutoencoderViT(nn.Module):
         """
         with torch.no_grad():
             target = self.vae.get_codebook_indices(imgs).flatten(1)
-        # if args.G_pre_mean:
-        #     return target
-        # print('target shape: ', target.shape)  # torch.Size([32, 196])
-        # print('target: ', target)
-        # print('mask: ', mask)
-        # print("pred   ",pred)
-        # print("target  ",target)
-        # print(pred.shape)
-        # print(target.shape)
-        # print("pred min:", pred.min().item(), "pred max:", pred.max().item())
         pred = pred.to(torch.float32)
-        # print("pred min:", pred.min().item(), "pred max:", pred.max().item())
-        # print(target.shape)
         log_softmax = nn.LogSoftmax(dim=2)
         nll_loss = nn.NLLLoss(reduction='none')
         pred_log_softmax = log_softmax(pred)
-
         loss = nll_loss(pred_log_softmax.permute(0, 2, 1), target)
-        # print("loss  ",loss)
         loss = (loss * mask).sum() / mask.sum()  # mean loss on removed patches
-        # print("loss ",loss)
         return loss / imgs.shape[0]
 
     def forward(self, imgs, visual_tokens=None, mask_ratio=0.75, inpt_mask=None):

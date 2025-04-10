@@ -4,7 +4,7 @@ import os
 import sys
 import json
 import torch
-import Codes.models.models_mae as models_mae
+import models.models_mae as models_mae
 from PIL import Image
 from evaluate.mae_utils import PURPLE, YELLOW
 import torchvision.transforms as T
@@ -12,11 +12,8 @@ import h5py
 import torchvision.transforms.functional as TF
 from PIL import Image
 from omegaconf import OmegaConf
-from Codes.models.vqgan import VQModel
 
 def load_maevq(chkpt_dir = './weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
-    #vq = prepare_model(args.ckpt, arch=args.mae_model)
-    # build model
     model = getattr(models_mae, arch)()
     # load model
     checkpoint = torch.load(chkpt_dir, map_location='cpu')
@@ -105,12 +102,6 @@ for foldid in [0, 1, 2, 3]:
             cats[:, :, :img_size, -img_size:] = masks
             cats[:, :, -img_size:, -img_size:] = masks
             cats = (cats - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
-            # image = TF.to_pil_image(cats[31])
-            # print(img_name)
-            # # # 保存图像
-            # image.save("cat.jpg")
-            # print(cats.shape)
-            # assert False
             with torch.no_grad():
                 img_features = model.patch_embed(cats)
                 img_features = img_features + model.pos_embed[:,1:,:]
@@ -148,6 +139,4 @@ for foldid in [0, 1, 2, 3]:
             print(i,"   ",dataset_name)
             if dataset_name not in f:
                 feature = img_features[i]
-                # print(feature.shape)
-                # print(feature.shape,(feature[:98,:]).shape)
                 dset = f.create_dataset(dataset_name, data = feature[:98,:])

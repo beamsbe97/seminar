@@ -43,45 +43,29 @@ def linear_layer_parameterization(layer, device, rank=128, lora_alpha=0.5):
 
 
 def load_lora_state_dict(model, lora_state_dict):
-    # 遍历模型中的所有层
     for name, module in model.named_modules():
         if hasattr(module, 'parametrizations') and 'weight' in module.parametrizations:
             lora_params = module.parametrizations['weight'][0]
-            # 加载 lora_A 和 lora_B 到模型中
             if f'{name}.lora_A' in lora_state_dict:
                 lora_params.lora_A.data = lora_state_dict[f'{name}.lora_A']
             if f'{name}.lora_B' in lora_state_dict:
                 lora_params.lora_B.data = lora_state_dict[f'{name}.lora_B']
     
 def save_lora_state_dict(model):
-    # 创建一个字典来存储LoRA的状态字典
     lora_state_dict = {}
 
-    # 遍历所有的层并检查它们的 `parametrizations` 字典
     for name, module in model.named_modules():
-        # 如果这个模块有经过 LoRA 参数化的层
         if hasattr(module, 'parametrizations') and 'weight' in module.parametrizations:
-            lora_params = module.parametrizations['weight'][0]  # 取出 LoRA 的变换部分
-            # 将 LoRA 参数（lora_A, lora_B）加入字典
+            lora_params = module.parametrizations['weight'][0] 
             lora_state_dict[f'{name}.lora_A'] = lora_params.lora_A
             lora_state_dict[f'{name}.lora_B'] = lora_params.lora_B
-    
-    # 保存到文件
-    # print(f"LoRA state dict saved to {file_path}")
     return lora_state_dict
 
 def freeze_base_weights(model):
-    # 遍历模型中的每一层
     for name, module in model.named_modules():
         if hasattr(module, 'parametrizations') and 'weight' in module.parametrizations:
-            # 确保 module.weight 是叶子变量
-            # if module.weight.requires_grad :
-            #     module.weight.requires_grad = False  # 不更新原始的权重
-
-            # 只对 LoRA 相关的参数（lora_A 和 lora_B）进行优化
             if hasattr(module.parametrizations['weight'][0], 'lora_A'):
                 module.parametrizations['weight'][0].lora_A.requires_grad = True
                 module.parametrizations['weight'][0].lora_B.requires_grad = True
             else:
-                # 如果没有 LoRA 参数化，则不对该层进行更新（可以选择性处理）
                 pass

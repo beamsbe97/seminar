@@ -3,7 +3,7 @@ from evaluate.mae_utils import *
 from evaluate.segmentation_utils import *
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from models.prompt_generator import PromptGenerator,PromptGeneratorlimzero,PromptGeneratorConv,PromptGeneratorFullCA,PromptGeneratorFullConv
+from models.prompt_generator import PromptGeneratorlimzero
 from PIL import Image
 import torchvision.transforms.functional as TF
 
@@ -45,14 +45,9 @@ def _generate_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, 
     batch_size = canvas_pred_tokens.shape[0]
     original_image_list = []
     generated_result_list = []
-
     for i in range(batch_size):
-        if args.pos == 'before':
-            _, im_paste, _ = generate_image_zero_shot(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
-                                        canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
-        else:
-            _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
-                                        canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
+        _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
+                                    canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
         canvas_ = torch.einsum('chw->hwc', canvas_label[i])
         canvas_ = torch.clip((canvas_.cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int().numpy()
         assert canvas_.shape == im_paste.shape, (canvas_.shape, im_paste.shape)
@@ -61,29 +56,6 @@ def _generate_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, 
         generated_result_list.append(np.uint8(im_paste))
 
 
-    return original_image_list, generated_result_list
-
-def _generate_gt_result_for_canvas(args, model, canvas_pred_tokens , canvas_label, arr):
-    """canvas is already in the right range."""
-    # ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
-    batch_size = canvas_label.shape[0]
-    original_image_list = []
-    generated_result_list = []
-
-    for i in range(batch_size):
-        # if args.pos == 'before':
-        #     _, im_paste, _ = generate_image_zero_shot(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
-        #                                 canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
-        # else:
-        #     _, im_paste, _ = generate_image(canvas_pred_tokens[i].unsqueeze(0).to(args.device), model, ids_shuffle.to(args.device),
-        #                                 canvas_label[i].unsqueeze(0).to(args.device), len_keep, device=args.device)
-        canvas_ = torch.einsum('chw->hwc', canvas_label[i])
-        canvas_ = torch.clip((canvas_.cpu().detach() * imagenet_std + imagenet_mean) * 255, 0, 255).int().numpy()
-        # assert canvas_.shape == im_paste.shape, (canvas_.shape, im_paste.shape)
-
-        original_image_list.append(np.uint8(canvas_))
-        # generated_result_list.append(np.uint8(im_paste))
-    generated_result_list = original_image_list
     return original_image_list, generated_result_list
 
 def round_image(img, options=(WHITE, BLACK, RED, GREEN, BLUE), outputs=None, t=(0, 0, 0)):
@@ -96,7 +68,6 @@ def round_image(img, options=(WHITE, BLACK, RED, GREEN, BLUE), outputs=None, t=(
     nn_indices = torch.argmin(nn, dim=-1)
     if outputs is None:
         outputs = options
-    ##修改
     res_img = img + (torch.tensor(outputs)[nn_indices]-img).detach()
     return res_img
 
@@ -110,17 +81,8 @@ class PGVP(nn.Module):
         self.padding = 1
         self.vqgan = vqgan
         self.arr = arr
-        # print('????????',args.sigma)
         if args.choice == 'Zero':
             self.PromptGenerator = PromptGeneratorlimzero(dropout=args.dropout,args=args)
-        if args.choice == 'Simga':
-            self.PromptGenerator = PromptGenerator(dropout=args.dropout,sigma=args.sigma,device=args.device)
-        if args.choice == 'Conv':
-            self.PromptGenerator = PromptGeneratorConv(args=args,dropout=args.dropout,kernel_size=args.kernel_size)
-        if args.choice == 'Full':
-            self.PromptGenerator = PromptGeneratorFullCA(dropout = args.dropout,args=args)
-        if args.choice == 'FullConv':
-            self.PromptGenerator = PromptGeneratorFullConv(args=args,dropout = args.dropout,kernel_size=args.kernel_size)
         self.transform224 = ResizeTransform((224, 224))
         self.transform111 = ResizeTransform((111, 111))
         self.mode = mode
@@ -201,7 +163,6 @@ class PGVP(nn.Module):
         return grid
 
     def create_gradiant_grid_label_images(self, support_img, support_mask, query_img, query_mask, grid):
-        # create grid image for suppot images and query image.
         grid[:, :, :support_img.shape[2], :support_img.shape[3]] = support_img
 
         grid[:, :, -query_img.shape[2]:, :query_img.shape[3]] = query_img
@@ -213,16 +174,9 @@ class PGVP(nn.Module):
     def _generate_raw_prediction(self, canvas_tokens, arr):
         """canvas is already in the right range."""
         ids_shuffle, len_keep = generate_arr_mask_for_evaluation(arr)
-        # print(ids_shuffle,ids_shuffle.shape,len_keep,len_keep.shape)
-        # assert False
-        if self.args.pos == 'before':
-            y_pred, mask = generate_raw_pred_for_train_zero_shot(canvas_tokens, self.vqgan,
-                                                   ids_shuffle.to(self.device),
-                                                   len_keep, device=self.device)
-        else:
-            y_pred, mask = generate_raw_pred_for_train(canvas_tokens, self.vqgan,
-                                                   ids_shuffle.to(self.device),
-                                                   len_keep, device=self.device)
+        y_pred, mask = generate_raw_pred_for_train(canvas_tokens, self.vqgan,
+                                                ids_shuffle.to(self.device),
+                                                len_keep, device=self.device)
 
         return y_pred, mask
 
@@ -234,27 +188,17 @@ class PGVP(nn.Module):
 
         canvas_return_label = canvas_return_label.permute(1,0,2,3,4)
         canvas_return_label = canvas_return_label[0]
-
-        # print("support_features min:", support_features.min().item(), "support_features max:", support_features.max().item())        
-        # print("query_features min:", query_features.min().item(), "query_features max:", query_features.max().item())        
-
-
         canvas_pred_tokens,reg_loss = self.PromptGenerator(support_features,query_features)
-
         grid = grid.permute(1,0,2,3,4)
         grid = grid[0]
-        # print("canvas_pred_tokens min:", canvas_pred_tokens.min().item(), "canvas_pred_tokens max:", canvas_pred_tokens.max().item())        
         y_pred, mask = self._generate_raw_prediction(canvas_pred_tokens, self.arr)
         canvas_label = canvas_label.permute(1,0,2,3,4)
         if self.args.dataset_type != 'pascal_det' or flag == True:
             canvas_label = (canvas_label - self.imagenet_mean[:, None, None]) / self.imagenet_std[:, None, None]
         N = canvas_label.shape[0]
         loss_ce = 0
-        if self.args.loss_mean:
-            for sub_label in canvas_label:
-                loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
-            loss_ce /= N
-        else :
-            loss_ce = self.vqgan.forward_loss(canvas_label[0],y_pred,mask)
+        for sub_label in canvas_label:
+            loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
+        loss_ce /= N
         loss_ce = loss_ce + reg_loss
         return loss_ce, canvas_pred_tokens, canvas_return_label
