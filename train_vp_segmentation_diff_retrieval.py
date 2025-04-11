@@ -79,7 +79,6 @@ def get_args():
                         help="choose prompt composer")
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
-    parser.add_argument('--kernel_size', default=3, type=int)
     parser.add_argument("--loss_choice", type=str, default='cos',
                         help="choose prompt composer")
     parser.add_argument("--lamba", type=float, default='0.6',
@@ -94,7 +93,7 @@ def train(args):
     setting = f'_lr_{args.lr}_task_{args.task}'
     # task = f'task_{args.task}_{args.choice}_G_copy_another_{args.G_copy_another}_G_only_div_{args.G_only_div}_align_s{args.align_s}_align_q{args.align_q}_loss_mean{args.loss_mean}'
     task = f'retri_choice_{args.retri_choice}_task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 

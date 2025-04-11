@@ -71,7 +71,6 @@ def get_args():
     parser.add_argument("--choice", type=str, default='Zero',
                         help="choose prompt composer")
 
-    parser.add_argument('--kernel_size', default=7, type=int)
     parser.add_argument("--loss_choice", type=str, default='cos',
                         help="choose prompt composer")
     parser.add_argument("--lamba", type=float, default='0.6',

@@ -88,7 +88,7 @@ python Codes/tools/pre_get_clip_tokens/feature_extractor_folderwise_segmentation
 ### 5.1 Training 
 
 ```
-python3 Codes/train_vp_segmentation.py --mode spimg_spmask --output_dir data/output/logs/ --device cuda:0 --base_dir data/pascal-5i/ --batch-size 16 --lr 0.03 --epoch 150 --scheduler cosinewarm --arr a1 --vp-model Prompt --p-eps 1 --ckpt data/weights/checkpoint-1000.pth --vq_ckpt_dir data/weights/vqgan --save_base_dir data/ --simidx 16 --dropout 0.25 --choice Zero --kernel_size 7 --loss_mean 1 --align_q 0 --fold 3
+python3 Codes/train_vp_segmentation.py --mode spimg_spmask --output_dir data/output/logs/ --device cuda:0 --base_dir data/pascal-5i/ --batch-size 16 --lr 0.03 --epoch 150 --scheduler cosinewarm --arr a1 --vp-model Prompt --p-eps 1 --ckpt data/weights/checkpoint-1000.pth --vq_ckpt_dir data/weights/vqgan --save_base_dir data/ --simidx 16 --dropout 0.25 --choice Zero --loss_mean 1 --align_q 0 --fold 3
 ```
 
 ### 5.2 Inference

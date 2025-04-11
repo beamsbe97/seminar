@@ -49,7 +49,6 @@ def get_args():
     parser.add_argument('--random', action='store_true')
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
-    parser.add_argument('--kernel_size',default=3,type=int)
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
@@ -87,7 +86,7 @@ def get_args():
 def train(args):
     setting = f'_lr_{args.lr}_task_{args.task}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 

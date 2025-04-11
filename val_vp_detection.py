@@ -45,7 +45,6 @@ def get_args():
     parser.add_argument('--random', action='store_true')
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
-    parser.add_argument('--kernel_size',default=7,type=int)
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
