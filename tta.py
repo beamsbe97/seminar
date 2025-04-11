@@ -1,5 +1,5 @@
-from evaluate.reasoning_dataloader import background_transforms
-from evaluate.mae_utils import *
+from seg_col_dataloader.reasoning_dataloader import background_transforms
+from models.mae_utils import *
 import torch
 from PIL import Image
 import numpy as np

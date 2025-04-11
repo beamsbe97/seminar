@@ -19,8 +19,8 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 from torchvision.transforms import RandomResizedCrop
 import sys
-from evaluate_detection.box_ops import box_xyxy_to_cxcywh, box_cxcywh_to_xyxy
-from evaluate_detection.misc import interpolate
+from det_dataloader.box_ops import box_xyxy_to_cxcywh, box_cxcywh_to_xyxy
+from det_dataloader.misc import interpolate
 
 
 def crop(image, target, region):

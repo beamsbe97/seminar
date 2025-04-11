@@ -1,14 +1,14 @@
 import os.path
 from tqdm import trange, tqdm
-from evaluate.reasoning_dataloader import *
+from seg_col_dataloader.reasoning_dataloader import *
 import torchvision
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
-from evaluate.segmentation_utils import *
+from models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
-from evaluate.canvas_for_coloring import DatasetColorization
+from seg_col_dataloader.canvas_for_coloring import DatasetColorization
 import torch.multiprocessing as mp
 from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler

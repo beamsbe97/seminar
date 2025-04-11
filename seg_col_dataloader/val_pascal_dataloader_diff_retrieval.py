@@ -2,36 +2,24 @@
 """
 import os
 from PIL import Image
-import sys
-current_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-# print(os.path.dirname(current_path))
-if current_path not in sys.path:
-    sys.path.append(current_path)
-
-print(sys.path)
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from evaluate.mae_utils import PURPLE, YELLOW
+from models.mae_utils import PURPLE, YELLOW
 import json
 import h5py
 
-mapped_dict = {
-    '0': {'05': '05', '02': '02', '16': '15', '09': '09', '44': '40'},
-    '1': {'06': '06', '03': '03', '17': '16', '62': '57', '21': '20'},
-    '2': {'67': '61', '18': '17', '19': '18', '04': '04', '01': '01'},
-    '3': {'64': '59', '20': '19', '63': '58', '07': '07', '72': '63'}
-}
-class DatasetMSCOCO(Dataset):
+class DatasetPASCAL(Dataset):
     def __init__(self, datapath, args, fold, split, image_transform, mask_transform, padding: bool = 1,
-                 use_original_imgsize: bool = False, flipped_order: bool = False,have_tokens: bool = False,
+                 use_original_imgsize: bool = False, flipped_order: bool = False,
                  reverse_support_and_query: bool = False, random: bool = False, ensemble: bool = False,
                  purple: bool = False, cluster: bool = False, feature_name: str = 'features_vit-laion2b_no_cls_trn',
                  percentage: str = '', seed: int = 0, mode: str = '', arr: str = 'a1', cls_base: bool = False,
-                 selected_label: int = -1, simidx: int = 1):
+                 selected_label: int = -1, simidx: int = 1, retri_choice: str = 'random'):
+        self.retri_choice = retri_choice        
         self.fold = fold
         self.args = args
-        self.mscoco_pat = datapath
+        self.pascal_pat = datapath
         self.split = split
         self.nfolds = 4
         self.flipped_order = flipped_order
@@ -46,36 +34,41 @@ class DatasetMSCOCO(Dataset):
         self.cls_base = cls_base
         self.selected_label = selected_label
 
-        self.img_path = os.path.join(args.save_base_dir,'pascal-5i', 'VOC2012/JPEGImages/')
-        self.ann_path = os.path.join(args.save_base_dir,'pascal-5i', 'VOC2012/SegmentationClassAug/')
-        self.coco_img_path = os.path.join(datapath, 'trn2014')
-        self.coco_ann_path = os.path.join(datapath, 'Coco_Trainlabel')
+        self.img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
+        self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
         self.image_transform = image_transform
         self.reverse_support_and_query = reverse_support_and_query
         self.mask_transform = mask_transform
 
-        # self.class_ids = self.build_class_ids()
+        self.class_ids = self.build_class_ids()
         self.img_metadata_val = self.build_img_metadata('val')
         self.all_img_metadata_trn = self.build_all_img_metadata('trn')
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
-        self.img_feature_for_train_path = os.path.join(datapath, f'{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
-        self.img_feature_for_val_path = os.path.join(args.save_base_dir,'pascal-5i', f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
+        self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
+        self.img_feature_for_val_path = os.path.join(datapath, f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
         self.images_top50_val = self.get_top50_images_for_validation()
         self.images_top50_trn = self.get_top50_images_trn()
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
-        self.have_tokens = have_tokens
+
     def __len__(self):
         return len(self.img_metadata_val)
 
     def get_top50_images_for_validation(self):
         print('feature name for val: ', self.feature_name[:-4] + '_val')
-        with open(f"{self.mscoco_pat}/{self.feature_name[:-4]}_val/folder{self.fold}_top_50-similarity.json") as f:
-            images_top50 = json.load(f)
-
+        if self.retri_choice == 'origin_clip':
+            with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_val/origin_clip_folder{self.fold}_top50-similarity.json") as f:
+                images_top50 = json.load(f)
+        else:
+            if self.retri_choice == 'SupPR_clip':
+                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_val/SupPR_folder{self.fold}_top50-similarity.json") as f:
+                    images_top50 = json.load(f)
+            else:
+                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_val/folder{self.fold}_top_50-similarity.json") as f:
+                    images_top50 = json.load(f)
         images_top50_new = {}
         for img_name, img_class in self.img_metadata_val:
             if img_name not in images_top50_new:
@@ -86,6 +79,8 @@ class DatasetMSCOCO(Dataset):
         return images_top50_new
 
     def get_top50_images_trn(self):
+
+
         images_top50_new = {}
         for img_name, img_class in self.all_img_metadata_trn:
             if img_name not in images_top50_new:
@@ -208,23 +203,14 @@ class DatasetMSCOCO(Dataset):
             canvas_list.append(canvas)
 
         return canvas_list
-    
-    def get_tokens(self,query_name,support_name):
-        with h5py.File(f'{self.mscoco_pat}/features_vit-laion2b_pixel-level_val/folder_{self.fold}_gt_tokens.h5','r') as f:
-            group = f.require_group(query_name)
-            return torch.tensor(f[query_name][support_name][:],dtype=torch.long)
-        
+
     def __getitem__(self, idx):
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
         grid_stack = torch.tensor([]) 
-        grids = []
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
-        vq_tokens = []
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
-            if self.have_tokens:
-                vq_tokens.append(self.get_tokens(query_name=query_name,support_name=support_name))
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
                                                                                                 support_name)
             if self.image_transform:
@@ -247,30 +233,23 @@ class DatasetMSCOCO(Dataset):
 
             else:
                 grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-            query_img_features, support_feature = self.load_feature(query_name,support_name)
-            query_img_features = torch.tensor(query_img_features).unsqueeze(0)
-            if len(grid_stack) == 0:
-                grid_stack = grid
-            grids.append(grid)
+            query_img_feature, support_feature = self.load_feature(query_name,support_name)
+            grid_stack = grid
+            if query_img_features.numel() == 0:
+                query_img_features = torch.tensor(query_img_feature).unsqueeze(0)
             if support_features.numel() == 0:
-                support_features = support_feature.unsqueeze(0)
+                support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
                 support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
-        if self.have_tokens:
-            vq_tokens = torch.stack(vq_tokens,dim = 0)
-        grids = torch.stack(grids,dim=0)
-
+                
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
                  'support_img': support_img,
                  'support_mask': support_mask,
                  'grid_stack': grid_stack,
                  'query_img_features': query_img_features,
-                 'support_features': support_features,
-                 'query_image_name': query_name,
-                 'vq_tokens': vq_tokens,
-                 'grids': grids
-                }
+                 'support_features': support_features
+                 }
 
         return batch
 
@@ -294,14 +273,14 @@ class DatasetMSCOCO(Dataset):
         # import pdb;pdb.set_trace()
         query_img = self.read_img(query_name)
         query_mask = self.read_mask(query_name)
-        support_img = self.read_coco_img(support_name)
-        support_mask = self.read_coco_mask(support_name)
+        support_img = self.read_img(support_name)
+        support_mask = self.read_mask(support_name)
         org_qry_imsize = query_img.size
 
         return query_img, query_mask, support_img, support_mask, org_qry_imsize
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:
-            support_feature = f[str(support_name)+'.jpg'][...]
+            support_feature = f[support_name][...]
         with h5py.File(self.img_feature_for_val_path, "r") as f:
             query_img_feature = f[query_name][...]
         return query_img_feature,support_feature
@@ -313,18 +292,15 @@ class DatasetMSCOCO(Dataset):
     def read_img(self, img_name):
         r"""Return RGB image in PIL Image"""
         return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
-    def read_coco_mask(self, img_name):
-        r"""Return segmentation mask in PIL Image"""
-        mask = Image.open(os.path.join(self.coco_ann_path, img_name) + '.png')
-        return mask
 
-    def read_coco_img(self, img_name):
-        r"""Return RGB image in PIL Image"""
-        return Image.open(os.path.join(self.coco_img_path, img_name) + '.jpg')
     def sample_episode(self, idx, sim_idx):
         """Returns the index of the query, support and class."""
         query_name, class_sample = self.img_metadata_val[idx]
-
+        all_trn_range = len(self.all_img_metadata_trn)
+        if self.retri_choice == 'random':
+            new_idx = torch.randint(0,all_trn_range,(1,)).item()
+            support_name,support_class = self.all_img_metadata_trn[new_idx]
+            return query_name, support_name, class_sample, support_class
         if self.cls_base:
             support_name = self.images_top50_val[query_name]['top50'][sim_idx]
             support_class = self.images_top50_trn[support_name]['class']
@@ -374,8 +350,7 @@ class DatasetMSCOCO(Dataset):
                         # print('element: ',  element)
                         new_fold_n_metadata.append(element)
             else:
-                # print(str(self.fold))
-                new_fold_n_metadata = [[data.split('__')[0], int(data.split('__')[1]) -1] for data in fold_n_metadata]
+                new_fold_n_metadata = [[data.split('__')[0], int(data.split('__')[1]) - 1] for data in fold_n_metadata]
 
             return new_fold_n_metadata
 
@@ -392,13 +367,13 @@ class DatasetMSCOCO(Dataset):
             # cwd = os.path.dirname(os.path.abspath(__file__))
             cwd = self.args.save_base_dir
 
-            fold_n_metadata_path = os.path.join(cwd, 'split/coco/%s/fold%d.txt' % (split, fold_id))
+            fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold%d.txt' % (split, fold_id))
 
             with open(fold_n_metadata_path, 'r') as f:
                 fold_n_metadata = f.read().split('\n')[:-1]
             # import pdb;pdb.set_trace()
 
-            new_fold_n_metadata = [[data.split('__')[0][:-4], int(mapped_dict[str(self.fold)][(data.split('__')[1])]) -1] for data in fold_n_metadata]
+            new_fold_n_metadata = [[data.split('__')[0], int(data.split('__')[1]) - 1] for data in fold_n_metadata]
 
             return new_fold_n_metadata
 
@@ -420,5 +395,3 @@ class DatasetMSCOCO(Dataset):
                 img_metadata_classwise[img_class] += [img_name]
 
         return img_metadata_classwise
-
-

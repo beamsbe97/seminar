@@ -7,14 +7,14 @@ if current_path not in sys.path:
 
 print(sys.path)
 
-from trainer import train_mscoco_dataloader
-from trainer import val_mscoco_dataloader
-from evaluate.reasoning_dataloader import *
+from seg_col_dataloader import train_mscoco_dataloader
+from seg_col_dataloader import val_mscoco_dataloader
+from seg_col_dataloader.reasoning_dataloader import *
 import torchvision.transforms as T
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
-from evaluate.segmentation_utils import *
+from models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
@@ -137,8 +137,8 @@ def train(args):
     dataloaders = {}
 
     # set batch size to 1/2 on val set to adapt GPU memory.修改了
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False,num_workers=4)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,num_workers=4)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))

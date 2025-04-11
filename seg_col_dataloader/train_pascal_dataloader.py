@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 import json
 import sys
 import random
-from evaluate.mae_utils import PURPLE, YELLOW
+from models.mae_utils import PURPLE, YELLOW
 import h5py
 
 def create_grid_from_images_old(canvas, support_img, support_mask, query_img, query_mask):
@@ -26,7 +26,7 @@ class DatasetPASCAL(Dataset):
                  reverse_support_and_query: bool = False, random: bool = False, ensemble: bool = False,
                  purple: bool = False, cluster: bool = False, feature_name: str = 'features_vit-laion2b_trn',
                  percentage: str = '', seed: int = 0, mode: str = '', arr: str = '', cls_base: bool = False,
-                 selected_label: int = 0, simidx: int = 1,retri_choice: str = 'random'):
+                 selected_label: int = 0, simidx: int = 1):
         self.pascal_pat = datapath
         self.fold = fold
         self.args = args
@@ -43,7 +43,7 @@ class DatasetPASCAL(Dataset):
         self.use_original_imgsize = use_original_imgsize
         self.cls_base = cls_base
         self.selected_label = selected_label
-        self.retri_choice = retri_choice
+
         self.img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
         self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
 
@@ -73,21 +73,16 @@ class DatasetPASCAL(Dataset):
 
     def __len__(self):
         return len(self.img_metadata_trn) if self.split == 'trn' else 1000
+
     def get_top50_images_for_training(self):
-        if self.retri_choice == 'origin_clip':
-            with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_trn/origin_clip_folder{self.fold}_top50-similarity.json") as f:
-                images_top50 = json.load(f)
-        else:
-            if self.retri_choice == 'SupPR_clip':
-                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_trn/SupPR_folder{self.fold}_top50-similarity.json") as f:
-                    images_top50 = json.load(f)
-            else:
-                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_trn/folder{self.fold}_top_50-similarity.json") as f:
-                    images_top50 = json.load(f)
+        with open(f"{self.pascal_pat}/VOC2012/{self.feature_name}/folder{self.fold}_top_50-similarity.json") as f:
+            images_top50 = json.load(f)
+
         images_top50_new = {}
         for img_name, img_class in self.img_metadata_trn:
             if img_name not in images_top50_new:
                 images_top50_new[img_name] = {}
+
             images_top50_new[img_name]['top50'] = images_top50[img_name]
             images_top50_new[img_name]['class'] = img_class
 
@@ -259,9 +254,9 @@ class DatasetPASCAL(Dataset):
                 grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
             query_img_features, support_feature = self.load_feature(query_name,support_name)
             if support_features.numel() == 0:
-                support_features = support_feature.unsqueeze(0)
+                support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
-                support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
+                support_features = torch.cat((support_features, torch.tensor(support_feature).unsqueeze(0)), dim=0)
             query_img_features = torch.tensor(query_img_features).unsqueeze(0)
             if support_img.numel() == 0:
                 support_imgs = support_img.unsqueeze(0)
@@ -287,6 +282,7 @@ class DatasetPASCAL(Dataset):
                  }
 
         return batch
+
 
     def extract_ignore_idx(self, mask, class_id, purple):
         mask = np.array(mask)
@@ -331,12 +327,7 @@ class DatasetPASCAL(Dataset):
     def sample_episode_for_training(self, idx, sim_idx):
         """Returns the index of the query, support and class."""
         query_name, class_sample = self.img_metadata_trn[idx]
-        sim_idx = sim_idx+1
-        all_trn_range = len(self.img_metadata_trn)
-        if self.retri_choice == 'random':
-            new_idx = torch.randint(0,all_trn_range,(1,)).item()
-            support_name,support_class = self.img_metadata_trn[new_idx]
-            return query_name, support_name, class_sample, support_class
+
         if self.cls_base:
             support_name = self.images_top50_for_training[query_name]['top50'][sim_idx]
             support_class = self.images_top50_trn[support_name]['class']

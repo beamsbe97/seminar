@@ -14,7 +14,7 @@ print(torch.cuda.device_count())
 print(torch.cuda.is_available())
 import models.models_mae as models_mae
 from PIL import Image
-from evaluate.mae_utils import PURPLE, YELLOW
+from models.mae_utils import PURPLE, YELLOW
 import torchvision.transforms as T
 import h5py
 import torchvision.transforms.functional as TF

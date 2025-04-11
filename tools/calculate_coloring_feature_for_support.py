@@ -9,7 +9,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(cwd))
 from models import models_mae
 from PIL import Image
-from evaluate.mae_utils import PURPLE, YELLOW
+from models.mae_utils import PURPLE, YELLOW
 import torchvision.transforms as T
 import h5py
 import torchvision.transforms.functional as TF

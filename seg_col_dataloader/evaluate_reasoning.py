@@ -4,9 +4,9 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(cwd))
 import os.path
 from tqdm import trange
-from evaluate.reasoning_dataloader import *
+from seg_col_dataloader.reasoning_dataloader import *
 import cv2
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
 from tta import TTA, reverse_trans

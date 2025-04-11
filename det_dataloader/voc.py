@@ -1,6 +1,6 @@
 from torchvision.transforms import ToPILImage
 import sys
-import evaluate_detection.transforms as T
+import det_dataloader.transforms as T
 # partly taken from https://github.com/pytorch/vision/blob/master/torchvision/datasets/voc.py
 import functools
 import torch
@@ -305,7 +305,7 @@ def download_extract(url, root, filename, md5):
 
 
 if __name__ == '__main__':
-    from evaluate.mae_utils import imagenet_mean, imagenet_std
+    from models.mae_utils import imagenet_mean, imagenet_std
     from matplotlib import pyplot as plt
 
     dataset_val = VOCDetection('/shared/yossi_gandelsman/code/occlusionwalk/pascal', ["2012"], ['val'],

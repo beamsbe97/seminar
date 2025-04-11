@@ -1,18 +1,18 @@
 import os.path
 from tqdm import tqdm
-from evaluate.reasoning_dataloader import *
+from seg_col_dataloader.reasoning_dataloader import *
 import torchvision
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
-from evaluate.segmentation_utils import *
+from models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
-from evaluate_detection.canvas_ds import CanvasDataset4Val
+from det_dataloader.canvas_ds import CanvasDataset4Val
 import torch.multiprocessing as mp
 from models.train_models import PGVP, _generate_result_for_canvas
-from evaluate_detection.box_ops import to_rectangle
-from evaluate_detection.voc_orig import CLASS_NAMES
+from det_dataloader.box_ops import to_rectangle
+from det_dataloader.voc_orig import CLASS_NAMES
 import torchvision.transforms.functional as TF
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)

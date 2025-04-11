@@ -7,15 +7,15 @@ if current_path not in sys.path:
 
 print(sys.path)
 
-from trainer import train_pascal_dataloader
-from trainer import val_pascal_dataloader
-from trainer import train_fewshot_pascal_dataloader
-from evaluate.reasoning_dataloader import *
+from seg_col_dataloader import train_pascal_dataloader
+from seg_col_dataloader import val_pascal_dataloader
+from seg_col_dataloader import train_fewshot_pascal_dataloader
+from seg_col_dataloader.reasoning_dataloader import *
 import torchvision.transforms as T
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
-from evaluate.segmentation_utils import *
+from models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
@@ -23,7 +23,7 @@ from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
 import torch.nn.utils.parametrize as parametrize
-from trainer.Lora import linear_layer_parameterization,save_lora_state_dict,load_lora_state_dict,freeze_base_weights
+from peft_module.Lora import linear_layer_parameterization,save_lora_state_dict,load_lora_state_dict,freeze_base_weights
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for segmentation', add_help=False)
@@ -171,8 +171,8 @@ def train(args):
 
     dataloaders = {}
 
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False,num_workers=4)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,num_workers=4)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))

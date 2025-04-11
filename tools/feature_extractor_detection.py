@@ -15,7 +15,7 @@ from torch.nn import functional as F
 
 import timm
 import sys
-from evaluate_detection.voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
+from det_dataloader.voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
 
 model_name = sys.argv[1]
 feature_name = sys.argv[2]

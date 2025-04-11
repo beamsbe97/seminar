@@ -6,7 +6,7 @@ from scipy.io import loadmat
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from ..evaluate.mae_utils import PURPLE, YELLOW
+from ..models.mae_utils import PURPLE, YELLOW
 import json
  
 def create_grid_from_images_old(canvas, support_img, support_mask, query_img, query_mask):

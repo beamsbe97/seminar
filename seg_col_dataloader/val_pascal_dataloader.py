@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from evaluate.mae_utils import PURPLE, YELLOW
+from models.mae_utils import PURPLE, YELLOW
 import json
 import h5py
 
@@ -225,9 +225,9 @@ class DatasetPASCAL(Dataset):
             query_img_feature, support_feature = self.load_feature(query_name,support_name)
             grid_stack = grid
             if query_img_features.numel() == 0:
-                query_img_features = query_img_feature.unsqueeze(0)
+                query_img_features = torch.tensor(query_img_feature).unsqueeze(0)
             if support_features.numel() == 0:
-                support_features = support_feature.unsqueeze(0)
+                support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
                 support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
         batch = {'query_img': query_img,

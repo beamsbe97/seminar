@@ -1,18 +1,18 @@
 import os.path
 from tqdm import trange, tqdm
-from evaluate.reasoning_dataloader import *
+from seg_col_dataloader.reasoning_dataloader import *
 import torchvision
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
-from evaluate.segmentation_utils import *
+from models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
-from evaluate_detection.canvas_ds import CanvasDataset4Train, CanvasDataset4Val
+from det_dataloader.canvas_ds import CanvasDataset4Train, CanvasDataset4Val
 import torch.multiprocessing as mp
 from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
-from evaluate_detection.box_ops import to_rectangle
+from det_dataloader.box_ops import to_rectangle
 import torchvision.transforms.functional as TF
 from torch import autograd
 
@@ -118,8 +118,8 @@ def train(args):
     print('length of val dataset: ', len(val_dataset))
 
     dataloaders = {}
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size // 2, shuffle=False)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size // 2, shuffle=False,num_workers=4)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,num_workers=4)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))

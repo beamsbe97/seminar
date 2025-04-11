@@ -2,24 +2,34 @@
 """
 import os
 from PIL import Image
+from scipy.io import loadmat
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from evaluate.mae_utils import PURPLE, YELLOW
 import json
+import sys
+import random
+from models.mae_utils import PURPLE, YELLOW
 import h5py
+
+def create_grid_from_images_old(canvas, support_img, support_mask, query_img, query_mask):
+    canvas[:, :support_img.shape[1], :support_img.shape[2]] = support_img
+    canvas[:, -query_img.shape[1]:, :query_img.shape[2]] = query_img
+    canvas[:, :support_img.shape[1], -support_img.shape[2]:] = support_mask
+    canvas[:, -query_img.shape[1]:, -support_img.shape[2]:] = query_mask
+    return canvas
+
 
 class DatasetPASCAL(Dataset):
     def __init__(self, datapath, args, fold, split, image_transform, mask_transform, padding: bool = 1,
                  use_original_imgsize: bool = False, flipped_order: bool = False,
                  reverse_support_and_query: bool = False, random: bool = False, ensemble: bool = False,
-                 purple: bool = False, cluster: bool = False, feature_name: str = 'features_vit-laion2b_no_cls_trn',
-                 percentage: str = '', seed: int = 0, mode: str = '', arr: str = 'a1', cls_base: bool = False,
-                 selected_label: int = -1, simidx: int = 1, retri_choice: str = 'random'):
-        self.retri_choice = retri_choice        
+                 purple: bool = False, cluster: bool = False, feature_name: str = 'features_vit-laion2b_trn',
+                 percentage: str = '', seed: int = 0, mode: str = '', arr: str = '', cls_base: bool = False,
+                 selected_label: int = 0, simidx: int = 1,retri_choice: str = 'random'):
+        self.pascal_pat = datapath
         self.fold = fold
         self.args = args
-        self.pascal_pat = datapath
         self.split = split
         self.nfolds = 4
         self.flipped_order = flipped_order
@@ -33,44 +43,49 @@ class DatasetPASCAL(Dataset):
         self.use_original_imgsize = use_original_imgsize
         self.cls_base = cls_base
         self.selected_label = selected_label
-
+        self.retri_choice = retri_choice
         self.img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
         self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
+
         self.image_transform = image_transform
         self.reverse_support_and_query = reverse_support_and_query
         self.mask_transform = mask_transform
+        self.data_path = datapath
 
         self.class_ids = self.build_class_ids()
-        self.img_metadata_val = self.build_img_metadata('val')
+        self.img_metadata_val = self.build_img_metadata('val') if '_val' in feature_name else self.build_img_metadata(
+            'trn')
+        self.img_metadata_trn = self.build_img_metadata('trn')
         self.all_img_metadata_trn = self.build_all_img_metadata('trn')
+        # self.img_few_shot_metadata_trn = self.build_few_shot_metadata('trn', n_shot=16)
+
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
-        self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
-        self.img_feature_for_val_path = os.path.join(datapath, f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
-        self.images_top50_val = self.get_top50_images_for_validation()
+        # self.images_top50_val = self.get_top50_images_val()
         self.images_top50_trn = self.get_top50_images_trn()
+        self.images_top50_for_training = self.get_top50_images_for_training()
+        self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
+        self.support_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
 
     def __len__(self):
-        return len(self.img_metadata_val)
-
-    def get_top50_images_for_validation(self):
-        print('feature name for val: ', self.feature_name[:-4] + '_val')
+        return len(self.img_metadata_trn) if self.split == 'trn' else 1000
+    def get_top50_images_for_training(self):
         if self.retri_choice == 'origin_clip':
-            with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_val/origin_clip_folder{self.fold}_top50-similarity.json") as f:
+            with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_trn/origin_clip_folder{self.fold}_top50-similarity.json") as f:
                 images_top50 = json.load(f)
         else:
             if self.retri_choice == 'SupPR_clip':
-                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_val/SupPR_folder{self.fold}_top50-similarity.json") as f:
+                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_trn/SupPR_folder{self.fold}_top50-similarity.json") as f:
                     images_top50 = json.load(f)
             else:
-                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_val/folder{self.fold}_top_50-similarity.json") as f:
+                with open(f"{self.pascal_pat}/VOC2012/{self.feature_name[:-4]}_trn/folder{self.fold}_top_50-similarity.json") as f:
                     images_top50 = json.load(f)
         images_top50_new = {}
-        for img_name, img_class in self.img_metadata_val:
+        for img_name, img_class in self.img_metadata_trn:
             if img_name not in images_top50_new:
                 images_top50_new[img_name] = {}
             images_top50_new[img_name]['top50'] = images_top50[img_name]
@@ -79,14 +94,14 @@ class DatasetPASCAL(Dataset):
         return images_top50_new
 
     def get_top50_images_trn(self):
-
-
         images_top50_new = {}
-        for img_name, img_class in self.all_img_metadata_trn:
+        for img_name, img_class in self.img_metadata_trn:
             if img_name not in images_top50_new:
-                images_top50_new[img_name] = {}
+                images_top50_new[img_name] = {'class': []}
 
-            images_top50_new[img_name]['class'] = img_class
+            # Check if img_class is not already in the list to avoid duplicates.
+            if img_class not in images_top50_new[img_name]['class']:
+                images_top50_new[img_name]['class'].append(img_class)
 
         return images_top50_new
 
@@ -152,10 +167,16 @@ class DatasetPASCAL(Dataset):
 
         return canvas
 
-    def create_arr_grid_from_images(self, support_img, support_mask, query_img, query_mask, positions):
+    def create_ensemble_grid_from_images(self, support_img, support_mask, query_img, query_mask, positions):
         canvas = torch.ones((support_img.shape[0], 2 * support_img.shape[1] + 2 * self.padding,
                              2 * support_img.shape[2] + 2 * self.padding))
-        if positions == 'a2':
+
+        if positions == 'a1':
+            canvas[:, :support_img.shape[1], :support_img.shape[2]] = support_img
+            canvas[:, -query_img.shape[1]:, :query_img.shape[2]] = query_img
+            canvas[:, :support_img.shape[1], -support_img.shape[2]:] = support_mask
+            canvas[:, -query_img.shape[1]:, -support_img.shape[2]:] = query_mask
+        elif positions == 'a2':
             canvas[:, :support_img.shape[1], -support_img.shape[2]:] = support_img
             canvas[:, -query_img.shape[1]:, -support_img.shape[2]:] = query_img
             canvas[:, :support_img.shape[1], :support_img.shape[2]] = support_mask
@@ -206,13 +227,16 @@ class DatasetPASCAL(Dataset):
 
     def __getitem__(self, idx):
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
-        grid_stack = torch.tensor([]) 
+        grids = torch.tensor([]) 
+        support_imgs = torch.tensor([]) 
+        support_masks = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
         for sim_idx in range(self.simidx):
-            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
+            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
                                                                                                 support_name)
+            name = query_name
             if self.image_transform:
                 query_img = self.image_transform(query_img)
                 query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
@@ -233,20 +257,31 @@ class DatasetPASCAL(Dataset):
 
             else:
                 grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-            query_img_feature, support_feature = self.load_feature(query_name,support_name)
-            grid_stack = grid
-            if query_img_features.numel() == 0:
-                query_img_features = query_img_feature.unsqueeze(0)
+            query_img_features, support_feature = self.load_feature(query_name,support_name)
             if support_features.numel() == 0:
-                support_features = support_feature.unsqueeze(0)
+                support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
-                support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
-                
+                support_features = torch.cat((support_features, torch.tensor(support_feature).unsqueeze(0)), dim=0)
+            query_img_features = torch.tensor(query_img_features).unsqueeze(0)
+            if support_img.numel() == 0:
+                support_imgs = support_img.unsqueeze(0)
+            else:
+                support_imgs = torch.cat((support_imgs, support_img.unsqueeze(0)), dim=0)
+            if support_mask.numel() == 0:
+                support_masks = support_mask.unsqueeze(0)
+            else:
+                support_masks = torch.cat((support_masks, support_mask.unsqueeze(0)), dim=0)
+            if grid.numel() == 0:
+                grids = grid.unsqueeze(0)
+            else:
+                grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
+
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
-                 'support_img': support_img,
-                 'support_mask': support_mask,
-                 'grid_stack': grid_stack,
+                 'support_imgs': support_imgs,
+                 'support_masks': support_masks,
+                 'grids': grids,
+                 'name': name,
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
@@ -280,9 +315,9 @@ class DatasetPASCAL(Dataset):
         return query_img, query_mask, support_img, support_mask, org_qry_imsize
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:
-            support_feature = f[support_name][...]
-        with h5py.File(self.img_feature_for_val_path, "r") as f:
             query_img_feature = f[query_name][...]
+        with h5py.File(self.support_feature_for_train_path, "r") as f:
+            support_feature = f[support_name][...]
         return query_img_feature,support_feature
     def read_mask(self, img_name):
         r"""Return segmentation mask in PIL Image"""
@@ -293,35 +328,40 @@ class DatasetPASCAL(Dataset):
         r"""Return RGB image in PIL Image"""
         return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
 
-    def sample_episode(self, idx, sim_idx):
+    def sample_episode_for_training(self, idx, sim_idx):
         """Returns the index of the query, support and class."""
-        query_name, class_sample = self.img_metadata_val[idx]
-        all_trn_range = len(self.all_img_metadata_trn)
+        query_name, class_sample = self.img_metadata_trn[idx]
+        sim_idx = sim_idx+1
+        all_trn_range = len(self.img_metadata_trn)
         if self.retri_choice == 'random':
             new_idx = torch.randint(0,all_trn_range,(1,)).item()
-            support_name,support_class = self.all_img_metadata_trn[new_idx]
+            support_name,support_class = self.img_metadata_trn[new_idx]
             return query_name, support_name, class_sample, support_class
         if self.cls_base:
-            support_name = self.images_top50_val[query_name]['top50'][sim_idx]
+            support_name = self.images_top50_for_training[query_name]['top50'][sim_idx]
             support_class = self.images_top50_trn[support_name]['class']
             while support_class != class_sample:
                 sim_idx += 1
-                if sim_idx >= len(self.images_top50_val[query_name]['top50']):
+                if sim_idx >= len(self.images_top50_for_training[query_name]['top50']):
                     break
-                support_name = self.images_top50_val[query_name]['top50'][sim_idx]
+                support_name = self.images_top50_for_training[query_name]['top50'][sim_idx]
                 support_class = self.images_top50_trn[support_name]['class']
         else:
-            support_name = self.images_top50_val[query_name]['top50'][sim_idx]
-            support_class = self.images_top50_trn[support_name]['class']
+            support_name = self.images_top50_for_training[query_name]['top50'][sim_idx]
+            support_classes = self.images_top50_trn[support_name]['class']
+            if class_sample in support_classes:
+                support_class = class_sample
+            else:
+                support_class = support_classes[0]
 
         if support_name == query_name:
             print('support_name = query_name ' + support_name)
-            return self.sample_episode(idx, sim_idx + 1)
+            return self.sample_episode_for_training(idx, sim_idx + 1)
 
-        if sim_idx >= len(self.images_top50_val[query_name]['top50']):
+        if sim_idx >= len(self.images_top50_for_training[query_name]['top50']):
             print('query name: ', query_name)
             sim_idx = 0
-            return self.sample_episode(idx + 1, sim_idx)
+            return self.sample_episode_for_training(idx + 1, sim_idx)
 
         return query_name, support_name, class_sample, support_class
 
@@ -330,13 +370,51 @@ class DatasetPASCAL(Dataset):
         class_ids_val = [self.fold * nclass_trn + i for i in range(nclass_trn)]
         return class_ids_val
 
+    def build_few_shot_metadata(self, split, n_shot):
+
+        def read_metadata(split, fold_id):
+            cwd = self.args.save_base_dir
+
+            fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold%d.txt' % (split, fold_id))
+
+            with open(fold_n_metadata_path, 'r') as f:
+                fold_n_metadata = f.read().split('\n')[:-1]
+            # import pdb;pdb.set_trace()
+            fold_n_metadata = [[data.split('__')[0], int(data.split('__')[1]) - 1] for data in fold_n_metadata]
+
+            classes = {}
+            for item in fold_n_metadata:
+                if item[1] not in classes:
+                    classes[item[1]] = []
+                classes[item[1]].append(item)
+
+            n = n_shot
+            random.seed(1)
+            selected_items = []
+            for class_items in classes.values():
+                selected_items.extend(random.sample(class_items, min(n, len(class_items))))
+
+            # print(selected_items)
+
+            return selected_items
+
+        img_metadata = []
+        img_metadata = read_metadata(split, 0)
+
+        print('Total (%s) images are : %d' % (split, len(img_metadata)))
+
+        return img_metadata
+
     def build_img_metadata(self, split):
 
         def read_metadata(split, fold_id):
             # cwd = os.path.dirname(os.path.abspath(__file__))
             cwd = self.args.save_base_dir
 
-            fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold%d.txt' % (split, fold_id))
+            if self.cluster:
+                fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold_cluster%d.txt' % (split, fold_id))
+            else:
+                fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold%d.txt' % (split, fold_id))
 
             with open(fold_n_metadata_path, 'r') as f:
                 fold_n_metadata = f.read().split('\n')[:-1]
@@ -347,7 +425,6 @@ class DatasetPASCAL(Dataset):
                     label = int(data.split('__')[1]) - 1
                     if label + 1 == self.selected_label:
                         element = [data.split('__')[0], label]
-                        # print('element: ',  element)
                         new_fold_n_metadata.append(element)
             else:
                 new_fold_n_metadata = [[data.split('__')[0], int(data.split('__')[1]) - 1] for data in fold_n_metadata]
@@ -356,8 +433,7 @@ class DatasetPASCAL(Dataset):
 
         img_metadata = []
         img_metadata = read_metadata(split, self.fold)
-
-        print('Total (%s) images are : %d' % (split, len(img_metadata)))
+        # print('Total (%s) images are : %d' % (split, len(img_metadata)))
 
         return img_metadata
 
@@ -367,7 +443,10 @@ class DatasetPASCAL(Dataset):
             # cwd = os.path.dirname(os.path.abspath(__file__))
             cwd = self.args.save_base_dir
 
-            fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold%d.txt' % (split, fold_id))
+            if self.cluster:
+                fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold_cluster%d.txt' % (split, fold_id))
+            else:
+                fold_n_metadata_path = os.path.join(cwd, 'splits/pascal/%s/fold%d.txt' % (split, fold_id))
 
             with open(fold_n_metadata_path, 'r') as f:
                 fold_n_metadata = f.read().split('\n')[:-1]
@@ -380,18 +459,6 @@ class DatasetPASCAL(Dataset):
         img_metadata = []
         img_metadata = read_metadata(split, self.fold)
 
+        # print('Total (%s) images are : %d' % (split, len(img_metadata)))
+
         return img_metadata
-
-    def build_img_metadata_classwise(self):
-        img_metadata_classwise = {}
-        for class_id in range(self.nclass):
-            img_metadata_classwise[class_id] = []
-
-        if len(self.img_metadata[0]) != 3:
-            for img_name, img_class in self.img_metadata:
-                img_metadata_classwise[img_class] += [img_name]
-        else:
-            for img_name, img_class, _ in self.img_metadata:
-                img_metadata_classwise[img_class] += [img_name]
-
-        return img_metadata_classwise

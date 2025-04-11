@@ -2,7 +2,7 @@ import torch.utils.data as data
 import sys
 import os
 import argparse
-relative_path = './evaluate_detection'
+relative_path = './det_dataloader'
 abs_path = os.path.abspath(relative_path)
 sys.path.append(abs_path)
 from .voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
@@ -46,7 +46,7 @@ def get_annotated_image(img, boxes, border_width=3, mode='draw', bgcolor='white'
     return image_copy
 
 
-class CanvasDataset4Val(data.Dataset):
+class RandomCanvasDataset4Val(data.Dataset):
     def __init__(self, pascal_path='pascal-5i',args = None, years=("2012",),simidx = 1, random=False, **kwargs):
         self.train_ds = VOCDetection4Val(pascal_path, years, image_sets=['train'], transforms=None,
                                          keep_single_objs_only=1, filter_by_mask_size=1)
@@ -63,20 +63,15 @@ class CanvasDataset4Val(data.Dataset):
         self.transforms = make_transforms('val')
         self.random = random
         self.simidx = simidx
-        self.images_top50 = self.get_top50_images()
         self.img_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_query_all_detection/detection_eval_query.h5df'
         self.img_feature_for_train_path = os.path.join(pascal_path, self.img_feature_for_train_path)
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_eval_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
 
-    def get_top50_images(self):
-        with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_image-level_val_all_detection/new_top_50-similarity.json') as f:
-            images_top50 = json.load(f)
-        return images_top50
-    
     def __len__(self):
         return len(self.val_ds)
+    
     def __getitem__(self, idx):
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
@@ -94,8 +89,9 @@ class CanvasDataset4Val(data.Dataset):
         query_target_ten = self.transforms(query_image_copy_pil, None)[0]
 
         for sim_idx in range(self.simidx):
-            support_image_name = self.images_top50[query_image_name][sim_idx]
-            support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
+            idxx = torch.randint(0, len(self.train_ds), (1,)).item()
+            support_image, support_target = self.train_ds[idxx]
+            support_image_name = self.train_ds.images[idxx].split('/')[-1][:-4]
             support_label = support_target['labels'].numpy()[0]
             boxes = support_target['boxes'][torch.where(support_target['labels'] == support_label)[0]]
             support_image_copy = get_annotated_image(np.array(support_image), boxes, border_width=-1, mode='keep', bgcolor='black', fg='white')
@@ -136,6 +132,7 @@ class CanvasDataset4Val(data.Dataset):
             'support_features': support_features
         }
         return batch
+
     def load_feature(self,query_name, support_name):
         with h5py.File(self.img_feature_for_train_path, "r") as f:
             query_img_feature = f[query_name][...]
@@ -143,7 +140,7 @@ class CanvasDataset4Val(data.Dataset):
             support_feature = f[support_name][...]
         return query_img_feature,support_feature
 
-class CanvasDataset4Train(data.Dataset):
+class RandomCanvasDataset4Train(data.Dataset):
     def __init__(self, pascal_path='pascal-5i', args = None,years=("2012",), simidx = 1, random=False, **kwargs):
         self.train_ds = VOCDetection4Train(pascal_path, years, image_sets=['train'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
         self.val_ds = VOCDetection4Train(pascal_path, years, image_sets=['val'], transforms=None, keep_single_objs_only=1, filter_by_mask_size=1)
@@ -158,17 +155,13 @@ class CanvasDataset4Train(data.Dataset):
         self.transforms = make_transforms('val')
         self.random = random
         self.simidx = simidx
-        self.images_top50 = self.get_top50_images()
+        # self.images_top50 = self.get_top50_images()
         self.img_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_query_all_detection/detection_train_query.h5df'
         self.img_feature_for_train_path = os.path.join(pascal_path, self.img_feature_for_train_path)
         self.support_feature_for_train_path = './VOC2012/features_vit-laion2b_pixel-level_support_all_detection/detection_train_support.h5df'
         self.support_feature_for_train_path = os.path.join(pascal_path, self.support_feature_for_train_path)
         self.args = args
-    def get_top50_images(self):
-        with open(f'{self.pascal_pat}/VOC2012/features_vit-laion2b_image-level_train_all_detection/new_top_50-similarity.json') as f:
-            images_top50 = json.load(f)
-        return images_top50
-    
+
     def __len__(self):
         return len(self.val_ds)
     
@@ -196,8 +189,9 @@ class CanvasDataset4Train(data.Dataset):
         query_target_ten = self.transforms(query_image_copy_pil, None)[0]
 
         for sim_idx in range(self.simidx):
-            support_image_name = self.images_top50[query_image_name][sim_idx]
-            support_image, support_target = self.train_ds[self.train_ds.nameToNum[support_image_name]]
+            idxx = torch.randint(0, len(self.train_ds), (1,)).item()
+            support_image, support_target = self.train_ds[idxx]
+            support_image_name = self.train_ds.images[idxx].split('/')[-1][:-4]
             support_label = support_target['labels'].numpy()[0]
             boxes = support_target['boxes'][torch.where(support_target['labels'] == support_label)[0]]
             support_image_copy = get_annotated_image(np.array(support_image), boxes, border_width=-1, mode='keep', bgcolor='black', fg='white')

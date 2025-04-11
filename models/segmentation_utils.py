@@ -1,6 +1,6 @@
 import numpy as np
 
-from evaluate.mae_utils import WHITE, YELLOW, PURPLE, BLACK
+from models.mae_utils import WHITE, YELLOW, PURPLE, BLACK
 
 
 def calculate_metric(args, target, ours, fg_color=WHITE, bg_color=BLACK):

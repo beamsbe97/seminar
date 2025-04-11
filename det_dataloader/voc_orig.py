@@ -1,5 +1,5 @@
 import sys
-import evaluate_detection.transforms as T
+import det_dataloader.transforms as T
 # partly taken from https://github.com/pytorch/vision/blob/master/torchvision/datasets/voc.py
 import functools
 import torch
@@ -254,13 +254,6 @@ class VOCDetection4Val(VisionDataset):
         with open(os.path.join(split_f), "r") as f:
             file_names = [x.strip() for x in f.readlines()]
         return file_names
-        # splits_dir = os.path.join(voc_root, 'ImageSets/Main')
-        # split_f = os.path.join(splits_dir, image_set.rstrip('\n') + '.txt')
-        # with open('./evaluate_detection/support_set_for_val.txt', "r") as f:
-        #     file_names = [x.strip() for x in f.readlines()]
-        # # print('file names: ', file_names)
-
-        # return file_names
 
     def __getitem__(self, idx):
         """
@@ -468,11 +461,6 @@ class VOCDetection4Train(VisionDataset):
         with open(os.path.join(split_f), "r") as f:
             file_names = [x.strip() for x in f.readlines()]
         return file_names
-        # with open('./evaluate_detection/query_set_for_train.txt', "r") as f:
-        #     file_names = [x.strip() for x in f.readlines()]
-        # # print('file names: ', file_names)
-
-        # return file_names
 
     def extract_fns_support_set(self, image_set, voc_root):
         splits_dir = os.path.join(voc_root, 'ImageSets/Main')
@@ -481,11 +469,6 @@ class VOCDetection4Train(VisionDataset):
         with open(os.path.join(split_f), "r") as f:
             file_names = [x.strip() for x in f.readlines()]
         return file_names
-        # with open('./evaluate_detection/support_set_for_train.txt', "r") as f:
-        #     file_names = [x.strip() for x in f.readlines()]
-        # # print('file names: ', file_names)
-
-        # return file_names
 
     def __getitem__(self, idx):
         """

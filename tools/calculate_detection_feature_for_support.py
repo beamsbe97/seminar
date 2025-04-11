@@ -5,12 +5,12 @@ import sys
 import json
 import cv2
 import sys
-from evaluate_detection.voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
-from evaluate_detection.voc import make_transforms, create_grid_from_images
+from det_dataloader.voc_orig import VOCDetection4Val, VOCDetection4Train, make_transforms
+from det_dataloader.voc import make_transforms, create_grid_from_images
 import torch
 import models.models_mae as models_mae
 from PIL import Image
-from evaluate.mae_utils import PURPLE, YELLOW
+from models.mae_utils import PURPLE, YELLOW
 import torchvision.transforms as T
 import h5py
 import torchvision.transforms.functional as TF

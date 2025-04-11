@@ -7,23 +7,23 @@ if current_path not in sys.path:
 
 print(sys.path)
 
-from evaluate_detection.canvas_ds import CanvasDataset4Train,CanvasDataset4Val
-from evaluate.reasoning_dataloader import *
+from det_dataloader.canvas_ds import CanvasDataset4Train,CanvasDataset4Val
+from seg_col_dataloader.reasoning_dataloader import *
 import torchvision.transforms as T
-from evaluate.mae_utils import *
+from models.mae_utils import *
 import argparse
 from pathlib import Path
-from evaluate.segmentation_utils import *
+from models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
 import torch.nn.utils.parametrize as parametrize
-from trainer.P_tuning import *
+from peft_module.P_tuning import *
 from models.train_models import Scheduler
 
-from evaluate_detection.box_ops import to_rectangle
+from det_dataloader.box_ops import to_rectangle
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for detection', add_help=False)
@@ -174,8 +174,8 @@ def train(args):
     dataloaders = {}
 
     # set batch size to 1/2 on val set to adapt GPU memory.修改了
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False)
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False,num_workers=4)
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,num_workers=4)
 
     print('train datalaoder: ', len(dataloaders['train']))
     print('val datalaoder: ', len(dataloaders['val']))
