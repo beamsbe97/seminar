@@ -36,7 +36,6 @@ def get_args():
     parser.add_argument('--simidx', default=1, type=int)
     parser.add_argument('--dropout', default=0.3, type=float)
     parser.add_argument('--fold', default=0, type=int)
-    parser.add_argument('--kernel_size',default=3,type=int)
     parser.add_argument('--split', default='trn', type=str)
     parser.add_argument('--purple', default=0, type=int)
     parser.add_argument('--flip', default=0, type=int)
@@ -102,7 +101,7 @@ def convert_to_rgb(image):
 def train(args):
     setting = f'_lr_{args.lr}_task_{args.task}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'_kersiz_{args.kernel_size}_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_{args.pos}_{args.loss_choice}_{args.lamba}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
 
