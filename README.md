@@ -93,7 +93,7 @@ python Codes/tools/feature_extractor_folderwise_segmentation.py vit_large_patch1
 python Codes/tools/feature_extractor_folderwise_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level trn
 ```
 
-Then, we calculate a similarity matrix using the features, and extract the 50 most similar prompt names.
+Then, we calculate a similarity matrix using the features, and extract the top-50 similar prompt names.
 
 ```
 python Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level val trn
