@@ -170,6 +170,7 @@ python3 Codes/val_vp_segmentation.py \
  --save_base_dir VisualICL/\
  --simidx 1\
  --dropout 0.25\
+ --align_q 0 \
  --save_model_path SAVE_MODEL_PATH
 ```
 
