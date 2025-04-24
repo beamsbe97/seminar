@@ -64,15 +64,15 @@ The working directory is expected to be organized as below:
     	<li>save_ours_ckpt/</li>
     	<li>ckpt/</li>
     	<li>splits/</li>
-        <li>weights</li>
-        <ul>
-            <li>vqgan/</li>
-            <ul>
-                <li>last.ckpt</li>
-                <li>model.yaml</li>
-            </ul>
-            <li>checkpoint-1000.pth</li>
-        </ul>
+      <li>weights</li>
+      <ul>
+          <li>vqgan/</li>
+          <ul>
+              <li>last.ckpt</li>
+              <li>model.yaml</li>
+          </ul>
+          <li>checkpoint-1000.pth</li>
+      </ul>
     </ul>
 </ul>
 </details>
@@ -216,82 +216,82 @@ Download the checkpoint to the `Data/ckpt` path. Run the corresponding `.sh` fil
     <td class="tg-nrix" rowspan="4">Pascal-5i</td>
     <td class="tg-nrix">Folder 0</td>
     <td class="tg-nrix">42.13</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_0/simidx_1">Seg_K_1_Fold_0_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_0/simidx_1">Seg_K_1_Fold_0_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1Xu-9IIkvqnCMWTV5Vw9H-XZkQrqeQr-d/view?usp=drive_link" target="_blank">Seg_K_1_Fold_0.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run01.sh">run01.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run01.sh">run01.sh</a></td>
     <td class="tg-nrix">45.53</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_0/simidx_16">Seg_K_16_Fold_0_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_0/simidx_16">Seg_K_16_Fold_0_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1uQKYqJ_30jbxIyY1BezSgdp41GbUUaG0/view?usp=drive_link" target="_blank">Seg_K_16_Fold_0.pth</a>
-    <td class="tg-nrix"><a href="script/run02.sh">run02.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run02.sh">run02.sh</a></td>
     </td>
   </tr>
   <tr>
     <td class="tg-nrix">Folder 1</td>
     <td class="tg-nrix">50.31</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_1/simidx_1">Seg_K_1_Fold_1_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_1/simidx_1">Seg_K_1_Fold_1_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1qhQBfA9PhdHeDP_Ov27F7cVn6uMWxnCm/view?usp=drive_link" target="_blank">Seg_K_1_Fold_1.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run03.sh">run03.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run03.sh">run03.sh</a></td>
     <td class="tg-nrix">52.06</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_1/simidx_16">Seg_K_16_Fold_1_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_1/simidx_16">Seg_K_16_Fold_1_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1fr-58Q_6J1c1Rwh5VtPGMvdiwx6Al5Qh/view?usp=drive_link" target="_blank">Seg_K_16_Fold_1.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run04.sh">run04.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run04.sh">run04.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Folder 2</td>
     <td class="tg-nrix">42.20</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_2/simidx_1">Seg_K_1_Fold_2_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_2/simidx_1">Seg_K_1_Fold_2_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1J76Za3-qAnI5-3zJQDelgS5qaWSmcgWk/view?usp=drive_link" target="_blank">Seg_K_1_Fold_2.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run05.sh">run05.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run05.sh">run05.sh</a></td>
     <td class="tg-nrix">44.33</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_2/simidx_16">Seg_K_16_Fold_2_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_2/simidx_16">Seg_K_16_Fold_2_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1RZh1DkSHc18wSETarEHYxq3drp6Zho9z/view?usp=drive_link" target="_blank">Seg_K_16_Fold_2.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run06.sh">run06.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run06.sh">run06.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Folder 3</td>
     <td class="tg-nrix">41.90</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_3/simidx_1">Seg_K_1_Fold_3_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_3/simidx_1">Seg_K_1_Fold_3_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1_7jXuRtflwMusH1AUEEGbZlZqYmWxx8i/view?usp=drive_link" target="_blank">Seg_K_1_Fold_3.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run07.sh">run07.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run07.sh">run07.sh</a></td>
     <td class="tg-nrix">44.58</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_Zero_align_q0/fold_3/simidx_16">Seg_K_16_Fold_3_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_Zero_align_q0/fold_3/simidx_16">Seg_K_16_Fold_3_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1btEcQttj4OJSBaQuUjy3Edf9FID-CgCF/view?usp=drive_link" target="_blank">Seg_K_16_Fold_3.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run08.sh">run08.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run08.sh">run08.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Detection (mIoU↑)</td>
     <td class="tg-nrix" colspan="2">Pascal VOC 2012</td>
     <td class="tg-nrix">43.22</td>
-    <td class="tg-nrix"><a href="logs/task_detection_Zero_align_q0/fold_0/simidx_1">Det_K_1_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_detection_Zero_align_q0/fold_0/simidx_1">Det_K_1_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/11ftOY6uc-TjWSiZD9DUscp_mQ-Hh2AlP/view?usp=drive_link" target="_blank">Det_K_1.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run09.sh">run09.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run09.sh">run09.sh</a></td>
     <td class="tg-nrix">44.64</td>
-    <td class="tg-nrix"><a href="logs/task_detection_Zero_align_q0/fold_0/simidx_16">Det_K_16_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_detection_Zero_align_q0/fold_0/simidx_16">Det_K_16_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/18Nz4fQ4Rtd85SaZFnQEga6dyYT3FnXSD/view?usp=drive_link" target="_blank">Det_K_16.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run10.sh">run10.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run10.sh">run10.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Coloring (MSE↓)</td>
     <td class="tg-nrix" colspan="2">ImageNet-1K</td>
     <td class="tg-nrix">0.56</td>
-    <td class="tg-nrix"><a href="logs/task_coloring_Zero_align_q0/fold_0/simidx_1">Col_K_1_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_coloring_Zero_align_q0/fold_0/simidx_1">Col_K_1_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1dm8HX4ruq0emF9xuC5xa3mgfWKDqvpA1/view?usp=drive_link" target="_blank">Col_K_1.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run11.sh">run11.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run11.sh">run11.sh</a></td>
     <td class="tg-nrix">0.54</td>
-    <td class="tg-nrix"><a href="logs/task_coloring_Zero_align_q0/fold_0/simidx_16">Col_K_16_Log</td>
+    <td class="tg-nrix"><a href="Codes/logs/task_coloring_Zero_align_q0/fold_0/simidx_16">Col_K_16_Log</td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1jrTLiZxNPS5DD0j4D4WtN6NsMal2OcKc/view?usp=drive_link" target="_blank">Col_K_16.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run12.sh">run12.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run12.sh">run12.sh</a></td>
   </tr>
 </tbody></table>
 
@@ -320,54 +320,54 @@ We have also open-sourced the experiment logs and checkpoints for the domain ada
     <td class="tg-nrix" rowspan="4">Coco-5i</td>
     <td class="tg-nrix">Folder 0</td>
     <td class="tg-nrix">40.39</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_0/simidx_1">Coco_K_1_Fold_0_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_0/simidx_1">Coco_K_1_Fold_0_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1fybnfYqYvnVVgmHDoK-8ddpJaqEDAAc0/view?usp=drive_link" target="_blank">Coco_K_1_Fold_0.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run13.sh">run13.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run13.sh">run13.sh</a></td>
     <td class="tg-nrix">40.37</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_0/simidx_16">Coco_K_16_Fold_0_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_0/simidx_16">Coco_K_16_Fold_0_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1FMc22XHfdTgPbfdgC5kTMBHNmrqBMdsr/view?usp=drive_link" target="_blank">Coco_K_16_Fold_0.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run14.sh">run14.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run14.sh">run14.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Folder 1</td>
     <td class="tg-nrix">44.54</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_1/simidx_1">Coco_K_1_Fold_1_Log</a></a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_1/simidx_1">Coco_K_1_Fold_1_Log</a></a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1nhxG7u-_iW56X6JAfzFRDMG107mqnZGd/view?usp=drive_link" target="_blank">Coco_K_1_Fold_1.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run15.sh">run15.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run15.sh">run15.sh</a></td>
     <td class="tg-nrix">44.85</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_1/simidx_16">Coco_K_16_Fold_1_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_1/simidx_16">Coco_K_16_Fold_1_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1c3obklnxXrL2oSqkjzuHqbB1AFK2McK9/view?usp=drive_link" target="_blank">Coco_K_16_Fold_1.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run16.sh">run16.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run16.sh">run16.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Folder 2</td>
     <td class="tg-nrix">40.23</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_2/simidx_1">Coco_K_1_Fold_2_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_2/simidx_1">Coco_K_1_Fold_2_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1FLoyE71yWdeoPWmWSDuF4TJov3-cunE6/view?usp=drive_link" target="_blank">Coco_K_1_Fold_2.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run17.sh">run17.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run17.sh">run17.sh</a></td>
     <td class="tg-nrix">41.03</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_2/simidx_16">Coco_K_16_Fold_2_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_2/simidx_16">Coco_K_16_Fold_2_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1QZ4FiQ47IMENilD2GDq0qB0pKoqqci7f/view?usp=drive_link" target="_blank">Coco_K_16_Fold_2.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run18.sh">run18.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run18.sh">run18.sh</a></td>
   </tr>
   <tr>
     <td class="tg-nrix">Folder 3</td>
     <td class="tg-nrix">36.33</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_3/simidx_1">Coco_K_1_Fold_3_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_3/simidx_1">Coco_K_1_Fold_3_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1umj_ZNn2wXaX4iSIQTT8mH35mCBIA8Yw/view?usp=drive_link" target="_blank">Coco_K_1_Fold_3.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run19.sh">run19.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run19.sh">run19.sh</a></td>
     <td class="tg-nrix">35.84</td>
-    <td class="tg-nrix"><a href="logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_3/simidx_16">Coco_K_16_Fold_3_Log</a></td>
+    <td class="tg-nrix"><a href="Codes/logs/task_segmentation_coco_Zero_G_copy_another_False_G_only_div_False_align_s1_align_q0_loss_mean1/fold_3/simidx_16">Coco_K_16_Fold_3_Log</a></td>
     <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1EZHUx-TJhqTk94Pl8fJG8JyOt3uMlq2H/view?usp=drive_link" target="_blank">Coco_K_16_Fold_3.pth</a>
     </td>
-    <td class="tg-nrix"><a href="script/run20.sh">run20.sh</a></td>
+    <td class="tg-nrix"><a href="Codes/script/run20.sh">run20.sh</a></td>
   </tr>
 </tbody></table>
 
