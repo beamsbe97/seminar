@@ -145,6 +145,7 @@ class VOCDetection4Val(VisionDataset):
             annotation_dir = os.path.join(voc_root, 'Annotations')
             # print(voc_root)
             if not os.path.isdir(voc_root):
+                print(voc_root)
                 raise RuntimeError('Dataset not found or corrupted.' +
                                    ' You can use download=True to download it')
 

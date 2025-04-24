@@ -117,8 +117,6 @@ class RandomCanvasDataset4Val(data.Dataset):
                 support_masks = torch.cat((support_masks, support_target_ten.unsqueeze(0)), dim=0)
             if query_img_features.numel() == 0:
                 query_img_features = torch.tensor(query_feature).unsqueeze(0)
-            else:
-                query_img_features = torch.cat((query_img_features, torch.tensor(query_feature).unsqueeze(0)), dim=0)
             if support_features.numel() == 0:
                 support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
@@ -217,8 +215,6 @@ class RandomCanvasDataset4Train(data.Dataset):
                 support_masks = torch.cat((support_masks, support_target_ten.unsqueeze(0)), dim=0)
             if query_img_features.numel() == 0:
                 query_img_features = torch.tensor(query_feature).unsqueeze(0)
-            else:
-                query_img_features = torch.cat((query_img_features, torch.tensor(query_feature).unsqueeze(0)), dim=0)
             if support_features.numel() == 0:
                 support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
