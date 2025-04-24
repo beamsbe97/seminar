@@ -181,6 +181,14 @@ python3 Codes/val_vp_segmentation.py \
 
 3. Change the value of simidx to determine the number of prompt pairs used during inference.
 
+To facilitate the readers' implementation of inference, we have also designed a simple bash script for inference. To run it, navigate to the root directory of CVPR25_Condenser and execute the following command:
+
+```
+bash Codes/script/run01.sh
+```
+
+This will complete the relevant inference tasks.
+
 ## 5. Results
 
 Download the checkpoint to the `Data/ckpt` path. Run the corresponding `.sh` file to achieve one-click execution and directly obtain the results shown in the table.
