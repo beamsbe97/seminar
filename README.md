@@ -14,7 +14,7 @@ In the following, we will guide you how to use this repository step by step. ðŸ¤
 ## 2.Preparation
 
 ```
-git clone https://anonymous.4open.science/r/CVPR25-Condenser.git
+git clone https://github.com/gimpong/CVPR25-Condenser.git
 cd CVPR25-Condenser
 ```
 
@@ -378,13 +378,25 @@ We have provided visualized results for some test cases to help readers with an 
 
 ![Seg_Examples](./Figure/Seg_Examples.png)
 
-## 7. Acknowledgments
+## 7. References
+
+If you find our code useful or use the toolkit in your work, please consider citing:
+```
+@inproceedings{Wang25_Condenser,
+  author={Wang, Jinpeng; Luo, Tianci; Zha, Yaohua; Feng, Yan; Luo, Ruisheng; Chen, Bin; Dai, Tao; Chen, Long; Wang, Yaowei; Xia, Shu-Tao},
+  title={Embracing Collaboration Over Competition: Condensing Multiple Prompts for Visual In-Context Learning},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  year={2025}
+}
+```
+
+## 8. Acknowledgments
 
 This code is based on our previous work [InMeMo](https://github.com/Jackieam/InMeMo). 
 
 We are also grateful for other teams for open-sourcing codes that inspire our work, including [Visual Prompting](https://github.com/amirbar/visual_prompting), [visual_prompt_retrieval](https://github.com/ZhangYuanhan-AI/visual_prompt_retrieval), [timm](https://github.com/huggingface/pytorch-image-models), [ILM-VP](https://github.com/OPTML-Group/ILM-VP).
 
-## 8. Contact
+## 9. Contact
 
 If you have any question, you can raise an issue or email Jinpeng Wang (wjp20@mails.tsinghua.edu.cn). We will reply you soon.
 
