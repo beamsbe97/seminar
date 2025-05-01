@@ -4,7 +4,7 @@
 
 This repository contains the **PyTorch** implementation of our work at **CVPR 2025**:
 
-> [**Embracing Collaboration Over Competition: Condensing Multiple Prompts for Visual In-Context Learning**](http://arxiv.org/abs/2412.14518).  Jinpeng Wang<sup>\*</sup>, Tianci Luo<sup>*</sup>, Yaohua Zha, Yan Feng, Ruisheng Luo, Bin Chen, Tao Dai, Long Chen, Yaowei Wang, Shu-Tao Xia.
+> [**Embracing Collaboration Over Competition: Condensing Multiple Prompts for Visual In-Context Learning**](http://arxiv.org/abs/2504.21263).  Jinpeng Wang<sup>\*</sup>, Tianci Luo<sup>*</sup>, Yaohua Zha, Yan Feng, Ruisheng Luo, Bin Chen, Tao Dai, Long Chen, Yaowei Wang, Shu-Tao Xia.
 
 ![main](./Figure/main.png)
 We devise **CONDENSER**, a lightweight external plugin that compresses relevant fine-grained context across multiple prompts. Optimized end-to-end with the backbone and an extra pre-alignment objective, **CONDENSER** ensures stability and accurate integration of contextual cues. 
