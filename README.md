@@ -383,7 +383,7 @@ We have provided visualized results for some test cases to help readers with an 
 If you find our code useful or use the toolkit in your work, please consider citing:
 ```
 @inproceedings{Wang25_Condenser,
-  author={Wang, Jinpeng; Luo, Tianci; Zha, Yaohua; Feng, Yan; Luo, Ruisheng; Chen, Bin; Dai, Tao; Chen, Long; Wang, Yaowei; Xia, Shu-Tao},
+  author={Wang, Jinpeng and Luo, Tianci and Zha, Yaohua and Feng, Yan and Luo, Ruisheng and Chen, Bin and Dai, Tao and Chen, Long and Wang, Yaowei and Xia, Shu-Tao},
   title={Embracing Collaboration Over Competition: Condensing Multiple Prompts for Visual In-Context Learning},
   booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
   year={2025}
