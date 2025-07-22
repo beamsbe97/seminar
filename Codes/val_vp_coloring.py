@@ -44,6 +44,8 @@ def get_args():
     parser.add_argument('--ensemble', action='store_true')
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
+    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
+
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -60,16 +62,19 @@ def get_args():
                         help="Number of mae weight hyperparameter,[0, 1].")
     parser.add_argument("--vp-model", type=str, default='pad',
                         help="pad prompter.")
-    parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
     parser.add_argument("--to_device", type=str, default='cuda:0',
                         help="cuda:?")
+    parser.add_argument("--choice", type=str, default='Zero',
+                        help="choose prompt composer")
     parser.add_argument('--align_s',type=int, default=1)
     parser.add_argument('--align_q',type=int, default=1)
     parser.add_argument("--loss_mean",type=int, default=1)
+    parser.add_argument('--G_pre_mean', action='store_true')
+    parser.add_argument('--G_copy_another', action='store_true')
+    parser.add_argument('--G_only_div', action='store_true')
+
     parser.add_argument('--save_model_path',
                         help='model checkpoint')
-    parser.add_argument("--choice", type=str, default='Zero',
-                        help="choose prompt composer")
 
     parser.add_argument("--loss_choice", type=str, default='cos',
                         help="choose prompt composer")
@@ -77,11 +82,9 @@ def get_args():
                         help="choose prompt composer")
     parser.add_argument("--pos", type=str, default='after',
                         help="choose prompt composer")
-    parser.add_argument('--G_pre_mean', action='store_true')
-    parser.add_argument('--G_copy_another', action='store_true')
-    parser.add_argument('--G_only_div', action='store_true')
 
     return parser
+
 def calculate_mse(target, ours):
     ours = (np.transpose(ours/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
     target = (np.transpose(target/255., [2, 0, 1]) - imagenet_mean[:, None, None]) / imagenet_std[:, None, None]
@@ -90,6 +93,7 @@ def calculate_mse(target, ours):
     ours = ours[:, 113:, 113:]
     mse = np.mean((target - ours)**2)
     return {'mse': mse}
+
 def convert_to_rgb(image):
     if image.mode != 'RGB':
         image = image.convert('RGB')
@@ -111,7 +115,7 @@ def test_for_generate_results(args):
     }[args.dataset_type](args.base_dir, image_transform, mask_transform,split='val',simidx=args.simidx,to_device=args.to_device)
 
     dataloaders = {}
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size // 2, shuffle=False, num_workers=4)
 
     print('val datalaoder: ', len(dataloaders['val']))
 
@@ -127,8 +131,12 @@ def test_for_generate_results(args):
         raise ValueError("Please check the mode of InMeMo!")
 
     if args.mode != 'no_vp':
-        state_dict = torch.load(args.save_model_path, map_location='cuda:0')
+        state_dict = torch.load(args.save_model_path, map_location=args.device)
         VP.PromptGenerator.load_state_dict(state_dict["visual_prompt_dict"])
+        begin_epoch = state_dict['epoch'] + 1  
+        best_mse = state_dict['best_mse']  
+        print(begin_epoch)
+        print(best_mse)
 
         VP.eval()
         VP.to(args.device)
@@ -175,6 +183,7 @@ def test_for_generate_results(args):
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                 log.write(str(image_number) + '\t' + str(current_metric) + '\n')
             image_number += 1
+            print(current_metric)
             for i, j in current_metric.items():
                 eval_dict[i] += (j / len(val_dataset))
 

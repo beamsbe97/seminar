@@ -105,35 +105,34 @@ class DatasetColorization(Dataset):
             query_image_name = query[:-4]
 
         for simidx in range(self.simidx):
-            if simidx == 0:
-                if self.split == 'val':
-                    support_name = self.image_top50[query[:-5]][simidx]
-                else :
-                    support_name = self.image_top50[query[:-4]][simidx]
-                support = support_name+'.jpg'
-                support_image_ten, support_target_ten = self.mask_transform(self.read_support_img(support)), self.image_transform(self.read_support_mask(support))
-                grid = self.create_grid_from_images(support_image_ten, support_target_ten, query_image_ten, query_target_ten)
-                query_feature, support_feature = self.load_feature(query_image_name,support_name)
-                if grids.numel() == 0:
-                    grids = grid.unsqueeze(0)  
-                else:
-                    grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
-                if support_imgs.numel() == 0:
-                    support_imgs = support_image_ten.unsqueeze(0)
-                else:
-                    support_imgs = torch.cat((support_imgs, support_image_ten.unsqueeze(0)), dim=0)
-                if support_masks.numel() == 0:
-                    support_masks = support_target_ten.unsqueeze(0)
-                else:
-                    support_masks = torch.cat((support_masks, support_target_ten.unsqueeze(0)), dim=0)
-                if query_img_features.numel() == 0:
-                    query_img_features = torch.tensor(query_feature).unsqueeze(0)
-                else:
-                    query_img_features = torch.cat((query_img_features, torch.tensor(query_feature).unsqueeze(0)), dim=0)
-                if support_features.numel() == 0:
-                    support_features = torch.tensor(support_feature).unsqueeze(0)
-                else:
-                    support_features = torch.cat((support_features, torch.tensor(support_feature).unsqueeze(0)), dim=0)
+            if self.split == 'val':
+                support_name = self.image_top50[query[:-5]][simidx]
+            else :
+                support_name = self.image_top50[query[:-4]][simidx]
+            support = support_name+'.jpg'
+            support_image_ten, support_target_ten = self.mask_transform(self.read_support_img(support)), self.image_transform(self.read_support_mask(support))
+            grid = self.create_grid_from_images(support_image_ten, support_target_ten, query_image_ten, query_target_ten)
+            query_feature, support_feature = self.load_feature(query_image_name,support_name)
+            if grids.numel() == 0:
+                grids = grid.unsqueeze(0)  
+            else:
+                grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
+            if support_imgs.numel() == 0:
+                support_imgs = support_image_ten.unsqueeze(0)
+            else:
+                support_imgs = torch.cat((support_imgs, support_image_ten.unsqueeze(0)), dim=0)
+            if support_masks.numel() == 0:
+                support_masks = support_target_ten.unsqueeze(0)
+            else:
+                support_masks = torch.cat((support_masks, support_target_ten.unsqueeze(0)), dim=0)
+            if query_img_features.numel() == 0:
+                query_img_features = torch.tensor(query_feature).unsqueeze(0)
+            # else:
+            #     query_img_features = torch.cat((query_img_features, torch.tensor(query_feature).unsqueeze(0)), dim=0)
+            if support_features.numel() == 0:
+                support_features = torch.tensor(support_feature).unsqueeze(0)
+            else:
+                support_features = torch.cat((support_features, torch.tensor(support_feature).unsqueeze(0)), dim=0)
         batch = {'query_img': query_image_ten,
             'query_mask': query_target_ten,
             'support_imgs': support_imgs,

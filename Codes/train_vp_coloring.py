@@ -11,10 +11,8 @@ from torch.utils.data import DataLoader
 from seg_col_dataloader.canvas_for_coloring import DatasetColorization
 import torch.multiprocessing as mp
 from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
-from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
-
-# matplotlib.use('TkAgg')
+from torch.cuda.amp import autocast, GradScaler
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for coloring', add_help=False)
@@ -31,6 +29,7 @@ def get_args():
     parser.add_argument('--t', default=[0, 0, 0], type=float, nargs='+')
     parser.add_argument('--task', default='coloring', choices=['segmentation', 'detection','coloring'])
     parser.add_argument('--ckpt', default='./weights/checkpoint-1000.pth', help='model checkpoint')
+    parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
     parser.add_argument('--dataset_type', default='image_net',
                         choices=['image_net'])
     parser.add_argument('--simidx', default=1, type=int)
@@ -47,9 +46,7 @@ def get_args():
     parser.add_argument('--aug', action='store_true')
     parser.add_argument('--save_examples', action='store_true', help='whether save the example in val')
     parser.add_argument('--save_base_dir', default='./VisualICL', help='/prefix/VisualICL/')
-    parser.add_argument('--vq_ckpt_dir', default='/data/luotianci/TO_JPSX/VisualICL/weights/vqgan', help="dir for vq-gan's config and model ckpt")
 
-    # train settings
     parser.add_argument("--batch-size", type=int, default=32,
                         help="Number of images sent to the network in one step.")
     parser.add_argument("--lr", type=float, default=40,
@@ -76,12 +73,17 @@ def get_args():
     parser.add_argument('--G_pre_mean', action='store_true')
     parser.add_argument('--G_copy_another', action='store_true')
     parser.add_argument('--G_only_div', action='store_true')
+
+    parser.add_argument('--save_model_path',
+                        help='model checkpoint')
+
     parser.add_argument("--loss_choice", type=str, default='cos',
                         help="choose prompt composer")
     parser.add_argument("--lamba", type=float, default='0.6',
                         help="choose prompt composer")
     parser.add_argument("--pos", type=str, default='after',
                         help="choose prompt composer")
+
     return parser
 
 def calculate_mse(target, ours):
@@ -191,7 +193,7 @@ def train(args):
         print("lr_rate: ", optimizer.param_groups[0]["lr"])
         lr_list.append(optimizer.param_groups[0]["lr"])
         VP.train()
-        for i, data in enumerate(tqdm(dataloaders['train'])):
+        for i, data in enumerate(tqdm(dataloaders['train'])):   #assest debug
             len_dataloader = len(dataloaders['train'])
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
@@ -243,7 +245,7 @@ def train(args):
             min_loss = average_epoch_loss
 
         print('epoch: {}, loss: {:.2f}'.format(epoch, average_epoch_loss))
-        print('min loss: {:.2f}'.format(min_loss))
+        print('min loss: {:.2f}'.format(min_loss))   #assest debug
 
         if epoch % 1 == 0:
             examples_save_path = eg_save_path + f'/{setting}_{epoch}/'
@@ -287,14 +289,14 @@ def train(args):
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')
                     image_number += 1
-
+                    print(current_metric)
                     for i, j in current_metric.items():
                         eval_dict[i] += (j / len(val_dataset))
 
             print('val metric: {}'.format(eval_dict))
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                 log.write('all\t' + str(eval_dict) + '\n')
-
+            # assert False   #debug
             # Save CKPT
             if args.vp_model == 'Prompt':
                 state_dict = {

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-python3 Codes/val_vp_coloring.py \
+python3 Codes/train_vp_coloring.py \
  --mode spimg_spmask \
  --output_dir Data/output/logs\
  --device cuda:0\
  --base_dir Data/imagenet/ \
- --batch-size 8 \
+ --batch-size 16 \
  --lr 0.03\
- --epoch 150\
+ --epoch 7\
  --arr a1\
  --vp-model Prompt\
  --p-eps 1\
