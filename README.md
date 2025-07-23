@@ -289,7 +289,7 @@ Download the checkpoint to the `Data/ckpt` path. Run the corresponding `.sh` fil
     <td class="tg-nrix"><a href="Codes/script/run11.sh">run11.sh</a></td>
     <td class="tg-nrix">0.54</td>
     <td class="tg-nrix"><a href="Codes/logs/task_coloring_Zero_align_q0/fold_0/simidx_16">Col_K_16_Log</td>
-    <td class="tg-nrix">  <a href="https://drive.google.com/file/d/1jrTLiZxNPS5DD0j4D4WtN6NsMal2OcKc/view?usp=drive_link" target="_blank">Col_K_16.pth</a>
+    <td class="tg-nrix">  <a href="https://huggingface.co/why-HH/Col_K_16/blob/main/Col_K_16.pth" target="_blank">Col_K_16.pth</a>
     </td>
     <td class="tg-nrix"><a href="Codes/script/run12.sh">run12.sh</a></td>
   </tr>

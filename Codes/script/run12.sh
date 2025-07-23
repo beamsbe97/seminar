@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python3 Codes/train_vp_coloring.py \
+python3 Codes/val_vp_coloring.py \
  --mode spimg_spmask \
  --output_dir Data/output/logs\
  --device cuda:0\

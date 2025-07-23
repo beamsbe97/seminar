@@ -289,7 +289,6 @@ def train(args):
                     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                         log.write(str(image_number) + '\t' + str(current_metric) + '\n')
                     image_number += 1
-                    print(current_metric)
                     for i, j in current_metric.items():
                         eval_dict[i] += (j / len(val_dataset))
 
