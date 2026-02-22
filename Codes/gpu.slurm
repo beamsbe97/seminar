@@ -7,7 +7,7 @@
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=5G
 #SBATCH --time=00:02:00
-#SBATCH --partition=gpu-short
+#SBATCH --partition=gpu
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 
@@ -18,6 +18,7 @@ module load slurm
 module load CUDA/12.3.2
 module load GCC/11.3.0
 module load Miniforge3
+
 
 echo "[$SHELL] Using GPU: "$CUDA_VISIBLE_DEVICES
 export CWD=$(pwd)
