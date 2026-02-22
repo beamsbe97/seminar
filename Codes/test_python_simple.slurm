@@ -13,6 +13,7 @@
 
 # in case the default settings change
 module load Miniforge3
+conda init
 conda activate condenser
 
 echo "[$SHELL] #### Starting Python test"
