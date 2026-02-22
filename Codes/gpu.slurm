@@ -23,3 +23,9 @@ echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
 echo $CUDA_VISIBLE_DEVICES
 nvidia-smi
+
+python - <<EOF
+import torch
+x = torch.randn(1000, 1000).cuda()
+print("Tensor on:", x.device)
+EOF
