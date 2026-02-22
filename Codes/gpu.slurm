@@ -7,7 +7,7 @@
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=5G
 #SBATCH --time=00:02:00
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu-short
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 
@@ -19,7 +19,7 @@ module load CUDA/12.3.2
 module load GCC/11.3.0
 module load Miniforge3
 
+echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
-echo "[$SHELL] Using GPU: "$CUDA_VISIBLE_DEVICES
-export CWD=$(pwd)
-echo "[$SHELL] ## current working directory: "$CWD
+python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+python -c "import torch; print('Device count:', torch.cuda.device_count())"
