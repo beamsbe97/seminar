@@ -3,7 +3,7 @@
 #SBATCH --output=%x_%j.out
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
-#SBATCH --mem=2G
+#SBATCH --mem=1G
 #SBATCH --time=00:05:00
 #SBATCH --partition=testing
 #SBATCH --ntasks=1
