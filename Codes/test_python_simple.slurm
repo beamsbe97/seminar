@@ -27,7 +27,7 @@ echo "[$SHELL] ## current working directory: "$CWD
 
 # Run the file
 echo "[$SHELL] ## Run script"
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python tools/feature_extractor_segmentation.py
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
 echo "[$SHELL] ## Script finished"
 
 echo "Active env: $CONDA_DEFAULT_ENV"
