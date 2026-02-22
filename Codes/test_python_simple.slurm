@@ -1,14 +1,15 @@
 #!/bin/bash -l
-#SBATCH --job-name=test_python_simple
+
+#SBATCH --job-name=test_gpu_tensorflow
 #SBATCH --output=%x_%j.out
+#SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
-#SBATCH --mem=1G
-#SBATCH --time=00:05:00
-#SBATCH --partition=testing
+#SBATCH --mem=5G
+#SBATCH --time=00:02:00
+#SBATCH --partition=gpu-short
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --gres=gpu:tesla_t4:1
+#SBATCH --gres=gpu:1
 
 module purge
 
@@ -26,7 +27,7 @@ conda activate condenser
 echo $CONDA_DEFAULT_ENV
 
 echo "[$SHELL] #### Starting Python test"
-echo "[$SHELL] ## This is $SLURM_JOB_USER on $HOSTNAME and this job has the ID $SLURM_JOB_ID"
+echo "[$SHELL] Using GPU: "$CUDA_VISIBLE_DEVICES
 
 # get the current working directory
 export CWD=$(pwd)
