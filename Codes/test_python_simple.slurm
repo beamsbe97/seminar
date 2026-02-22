@@ -25,7 +25,7 @@ echo "[$SHELL] ## current working directory: "$CWD
 
 # Run the file
 echo "[$SHELL] ## Run script"
-python Codes/tools/feature_extractor_segmentation.py
+python tools/feature_extractor_segmentation.py
 echo "[$SHELL] ## Script finished"
 
 echo "[$SHELL] #### Finished Python test. Have a nice day"
