@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=test_python_simple
 #SBATCH --output=%x_%j.out
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
