@@ -33,7 +33,7 @@ model names:
 # vit_base_patch16_224.dino
 """
 pretrained_cfg = timm.models.create_model('vit_large_patch14_clip_224').default_cfg
-pretrained_cfg['file'] ='/data/luotianci/visual_prompt_retrieval/tools/vit_large_patch14_clip_224.laion2b/open_clip_pytorch_model.bin'
+#pretrained_cfg['file'] ='/data/luotianci/visual_prompt_retrieval/tools/vit_large_patch14_clip_224.laion2b/open_clip_pytorch_model.bin'
 model = timm.create_model(model_name, pretrained=True,pretrained_cfg=pretrained_cfg)
 model.eval()
 model = model.cuda()
