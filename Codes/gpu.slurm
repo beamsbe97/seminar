@@ -21,5 +21,5 @@ module load Miniforge3
 
 echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
-python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
-python -c "import torch; print('Device count:', torch.cuda.device_count())"
+echo $CUDA_VISIBLE_DEVICES
+nvidia-smi
