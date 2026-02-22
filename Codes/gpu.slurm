@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=test_gpu
 #SBATCH --mail-user="<your-email-address>"
 #SBATCH --mail-type="ALL"
@@ -10,7 +10,6 @@
 #SBATCH --mem=2G
 #SBATCH --gres=gpu:tesla_t4:1
 
-# making sure we start with a clean module environment
 module purge
 
 echo "## Starting GPU test on $HOSTNAME"
@@ -25,11 +24,3 @@ TEST_DIR=$(pwd)
 echo "## Current dircectory $TEST_DIR"
 
 echo "## Available CUDA devices: $CUDA_VISIBLE_DEVICES"
-
-echo "## Checking status of CUDA device with nvidia-smi"
-nvidia-smi
-
-echo "## Running test"
-$HOME/user_guide_tutorials/first_gpu_job/cuda-samples/Samples/6_Performance/transpose/transpose
-
-echo "## Test finished. Goodbye"
