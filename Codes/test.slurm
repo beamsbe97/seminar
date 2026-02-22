@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=2G
-#SBATCH --gres=gpu:tesla_t4:1
+#SBATCH --gres=gpu:1
 
 # making sure we start with a clean module environment
 module purge
