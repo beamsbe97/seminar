@@ -24,8 +24,6 @@ echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo $CUDA_VISIBLE_DEVICES
 nvidia-smi
 
-python - <<EOF
-import torch
-x = torch.randn(1000, 1000).cuda()
-print("Tensor on:", x.device)
-EOF
+conda init
+conda activate condenser
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
