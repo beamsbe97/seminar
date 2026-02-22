@@ -21,10 +21,14 @@ cd CVPR25-Condenser
 ### 2.1 Environment Setup
 
 ```
+module load Miniforge3
+```
+
+```
 conda create -n condenser python=3.8 -y
 conda activate condenser
 conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.6 -c pytorch -c conda-forge
-pip install -r requirements.txt
+pip install -r Codes/requirements.txt
 ```
 
 ### 2.2 Download the image datasets and organize them properly
