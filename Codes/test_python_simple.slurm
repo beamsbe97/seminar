@@ -30,4 +30,7 @@ echo "[$SHELL] ## Run script"
 python tools/feature_extractor_segmentation.py
 echo "[$SHELL] ## Script finished"
 
-echo "[$SHELL] #### Finished Python test. Have a nice day"
+echo "Active env: $CONDA_DEFAULT_ENV"
+which python
+python -V
+python -c "import sys; print(sys.executable)"
