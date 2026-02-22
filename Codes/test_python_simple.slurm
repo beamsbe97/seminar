@@ -16,6 +16,7 @@ module load Miniforge3
 conda init
 
 conda activate condenser
+echo $CONDA_DEFAULT_ENV
 
 echo "[$SHELL] #### Starting Python test"
 echo "[$SHELL] ## This is $SLURM_JOB_USER on $HOSTNAME and this job has the ID $SLURM_JOB_ID"
