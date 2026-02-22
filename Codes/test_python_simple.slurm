@@ -12,6 +12,10 @@
 # load modules (assuming you start from the default environment)
 
 # in case the default settings change
+module load ALICE/default
+module load slurm
+module load CUDA/12.3.2
+module load GCC/11.3.0
 module load Miniforge3
 conda init
 
