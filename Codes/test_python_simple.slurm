@@ -3,20 +3,23 @@
 #SBATCH --output=%x_%j.out
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
-#SBATCH --mem=1G
+#SBATCH --mem=2G
 #SBATCH --time=00:05:00
 #SBATCH --partition=testing
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
+#SBATCH --gres=gpu:tesla_t4:1
 
-# load modules (assuming you start from the default environment)
+module purge
 
-# in case the default settings change
 module load ALICE/default
 module load slurm
 module load CUDA/12.3.2
 module load GCC/11.3.0
 module load Miniforge3
+
+nvidia-smi
+
 conda init
 
 conda activate condenser
