@@ -31,3 +31,10 @@ export CWD=$(pwd)
 echo "[$SHELL] CWD: "$CWD
 
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level trn
+
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level val trn
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level trn trn
+
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python Codes/tools/calculate_pre_feature_for_query.py
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python Codes/tools/calculate_pre_feature_for_support.py
