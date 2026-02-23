@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 import sys
 from timm.models.vision_transformer import PatchEmbed, Block
+sys.path.append(os.getcwd())
 from util.pos_embed import get_2d_sincos_pos_embed
 cwd = os.path.dirname(os.path.abspath(__file__))
 # print(cwd)
