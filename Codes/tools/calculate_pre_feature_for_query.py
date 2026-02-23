@@ -4,9 +4,9 @@ import os
 import sys
 import json
 import torch
-import models.models_mae as models_mae
+import Codes.models.models_mae as models_mae
 from PIL import Image
-from models.mae_utils import PURPLE, YELLOW
+from Codes.models.mae_utils import PURPLE, YELLOW
 import torchvision.transforms as T
 import h5py
 import torchvision.transforms.functional as TF
