@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import torch
+sys.path.append(os.getcwd())
 import Codes.models.models_mae as models_mae
 from PIL import Image
 from Codes.models.mae_utils import PURPLE, YELLOW
