@@ -15,8 +15,8 @@ target_split = sys.argv[3]
 print(f"Processing {features_name} ...")
 sys.stdout.flush()
 
-source_features_dir = f"./pascal-5i/VOC2012/{features_name}_{source_split}"
-target_features_dir = f"./pascal-5i/VOC2012/{features_name}_{target_split}"
+source_features_dir = f"Data/pascal-5i/VOC2012/{features_name}_{source_split}"
+target_features_dir = f"Data/pascal-5i/VOC2012/{features_name}_{target_split}"
 
 trn_set = False
 

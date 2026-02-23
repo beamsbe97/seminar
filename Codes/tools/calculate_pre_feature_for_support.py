@@ -13,7 +13,7 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from omegaconf import OmegaConf
 
-def load_maevq(chkpt_dir = './weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
+def load_maevq(chkpt_dir = 'Data/weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
     model = getattr(models_mae, arch)()
     # load model
     checkpoint = torch.load(chkpt_dir, map_location='cpu')
@@ -48,13 +48,13 @@ model = load_maevq()
 model = model.eval()
 model = model.cuda()
 
-datapath = './pascal-5i'
+datapath = 'Data/pascal-5i'
 
 img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
 ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
 
-features_dir = f"./pascal-5i/VOC2012/{features_name}_{split}"
-meta_root = f"./splits/pascal/{split}"
+features_dir = f"Data/pascal-5i/VOC2012/{features_name}_{split}"
+meta_root = f"Data/splits/pascal/{split}"
 
 transform = T.Compose([T.Resize((224, 224), 3),T.ToTensor()])
 imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).cuda()
