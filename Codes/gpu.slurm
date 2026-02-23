@@ -27,4 +27,4 @@ nvidia-smi
 conda init
 conda activate condenser
 
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
