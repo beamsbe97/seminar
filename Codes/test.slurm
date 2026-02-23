@@ -1,35 +1,16 @@
-#!/bin/bash
-#SBATCH --job-name=test_gpu
-#SBATCH --mail-user="<your-email-address>"
-#SBATCH --mail-type="ALL"
-#SBATCH --time=00:01:00
-#SBATCH --partition=testing
-#SBATCH --output=%x_%j.out
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
-#SBATCH --gres=gpu:1
 
-# making sure we start with a clean module environment
-module purge
+echo "running feature_extractor_segmentation.py val"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
+echo "FINISHED feature_extractor_segmentation.py val"
 
-echo "## Starting GPU test on $HOSTNAME"
+echo "running feature_extractor_segmentation.py trn"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level trn
+echo "FINISHED feature_extractor_segmentation.py trn"
 
-echo "## Loading module"
-module load ALICE/default
-module load slurm
-module load CUDA/12.3.2
-module load GCC/11.3.0
+echo "running calculate_similariity.py val"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level val trn
+echo "FINISHED calculate_similariity.py val"
 
-TEST_DIR=$(pwd)
-echo "## Current dircectory $TEST_DIR"
-
-echo "## Available CUDA devices: $CUDA_VISIBLE_DEVICES"
-
-echo "## Checking status of CUDA device with nvidia-smi"
-nvidia-smi
-
-echo "## Running test"
-$HOME/cuda-samples/Samples/6_Performance/transpose/transpose
-
-echo "## Test finished. Goodbye"
+echo "running calculate_similariity.py trn"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level trn trn
+echo "FINISHED calculate_similariity.py trn"
