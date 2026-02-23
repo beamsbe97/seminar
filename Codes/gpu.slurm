@@ -9,7 +9,7 @@
 #SBATCH --time=00:02:00
 #SBATCH --partition=gpu-short
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100:1
 
 module purge
 
@@ -26,4 +26,5 @@ nvidia-smi
 
 conda init
 conda activate condenser
+
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
