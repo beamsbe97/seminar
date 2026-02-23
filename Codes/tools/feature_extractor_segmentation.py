@@ -15,7 +15,7 @@ from torch.nn import functional as F
 
 import timm
 import sys
-
+print(f"GPU count{torch.cuda.is_available()}")
 os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 
 model_name = sys.argv[1]
