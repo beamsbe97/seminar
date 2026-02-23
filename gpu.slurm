@@ -30,11 +30,19 @@ conda activate condenser
 export CWD=$(pwd)
 echo "[$SHELL] CWD: "$CWD
 
+echo "running feature_extractor_segmentation.py val"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
+
+echo "running feature_extractor_segmentation.py trn"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level trn
 
+echo "running calculate_similariity.py val"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level val trn
+echo "running calculate_similariity.py trn"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/calculate_similariity.py features_vit-laion2b_pixel-level trn trn
 
+echo "running calculate_pre_feature_for_query.py"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/calculate_pre_feature_for_query.py
+
+echo "running calculate_pre_feature_for_support.py"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/seminar/Codes/tools/calculate_pre_feature_for_support.py
