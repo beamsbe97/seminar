@@ -27,4 +27,7 @@ nvidia-smi
 conda init
 conda activate condenser
 
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
+export CWD=$(pwd)
+echo "[$SHELL] CWD: "$CWD
+
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python $HOME/Codes/tools/feature_extractor_segmentation.py vit_large_patch14_clip_224.laion2b features_vit-laion2b_pixel-level val
