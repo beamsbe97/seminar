@@ -9,7 +9,7 @@ import importlib
 import torch
 from omegaconf import OmegaConf
 import os
-from viz_utils import imagenet_std, imagenet_mean
+from ..viz_utils import imagenet_std, imagenet_mean
 ## Code borrowed from VQGAN
 
 def get_obj_from_str(string, reload=False):
