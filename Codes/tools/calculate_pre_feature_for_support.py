@@ -14,6 +14,8 @@ import torchvision.transforms.functional as TF
 from PIL import Image
 from omegaconf import OmegaConf
 
+print(f"GPU available? {torch.cuda.is_available()}")
+
 def load_maevq(chkpt_dir = 'Data/weights/checkpoint-1000.pth',arch='mae_vit_large_patch16'):
     model = getattr(models_mae, arch)()
     # load model
