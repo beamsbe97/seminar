@@ -37,7 +37,7 @@ def read_img(img_name):
     r"""Return RGB image in PIL Image"""
     return Image.open(os.path.join(img_path, img_name) + '.jpg')
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '7'
+#os.environ["CUDA_VISIBLE_DEVICES"] = '7'
 
 features_name = sys.argv[1]
 split = sys.argv[2]
