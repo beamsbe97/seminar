@@ -143,3 +143,4 @@ for foldid in [0, 1, 2, 3]:
             if dataset_name not in f:
                 feature = img_features[i]
                 dset = f.create_dataset(dataset_name, data = feature[:98,:])
+print("reached ech of prefeature support")
