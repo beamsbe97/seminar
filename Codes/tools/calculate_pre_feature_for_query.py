@@ -52,10 +52,10 @@ model = model.cuda()
 datapath = 'Data/pascal-5i'
 
 img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
-ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
+ann_path = os.path.join(datapath, 'VOC2012/SegmentationClass/')
 
 features_dir = f"./pascal-5i/VOC2012/{features_name}_{split}"
-meta_root = f"./splits/pascal/{split}"
+meta_root = f"Data/splits/pascal/{split}"
 
 transform = T.Compose([T.Resize((224, 224), 3),T.ToTensor()])
 imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).cuda()
