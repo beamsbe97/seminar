@@ -31,9 +31,9 @@ export CWD=$(pwd)
 echo "[$SHELL] CWD: "$CWD
 
 echo "running calculate_pre_feature_for_query.py"
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m seminar.Codes.tools.calculate_pre_feature_for_query
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_query
 echo "FINISHED calculate_pre_feature_for_query.py"
 
 echo "running calculate_pre_feature_for_support.py"
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m seminar.Codes.tools.calculate_pre_feature_for_support
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_support
 echo "FINISHED calculate_pre_feature_for_support.py"
