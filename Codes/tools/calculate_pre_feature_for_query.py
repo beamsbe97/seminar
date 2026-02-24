@@ -54,7 +54,7 @@ datapath = 'Data/pascal-5i'
 img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
 ann_path = os.path.join(datapath, 'VOC2012/SegmentationClass/')
 
-features_dir = f"./pascal-5i/VOC2012/{features_name}_{split}"
+features_dir = f"Data/pascal-5i/VOC2012/{features_name}_{split}"
 os.makedirs(features_dir, exist_ok=True)
 meta_root = f"Data/splits/pascal/{split}"
 
