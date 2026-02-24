@@ -63,14 +63,21 @@ imagenet_std = torch.tensor([0.229, 0.224, 0.225]).cuda()
 for foldid in [0, 1, 2, 3]:
     print(f"Processing folder {foldid}")
     sys.stdout.flush()
-    
-    with open(os.path.join(meta_root, 'fold'+str(foldid)+'.txt')) as f:
+    fold_file = os.path.join(meta_root, f'fold{foldid}.txt')
+
+    with open(fold_file) as f:
         examples = f.readlines()
     if len(examples) == 0:
         print(f"zeros folder{foldid}")
         sys.stdout.flush()
         continue
+    examples = [data for data in examples if os.path.isfile((os.path.join(ann_path, data.split('__')[0]) + '.png'))]
+
+    with open(fold_file, 'w') as f:
+        for line in examples:
+            f.write(line)
     examples = [[data.split('__')[0] , int(data.split('__')[1]) - 1] for data in examples]
+        
         
     imgs = []
     masks = []
