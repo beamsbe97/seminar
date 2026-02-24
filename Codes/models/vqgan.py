@@ -1285,9 +1285,9 @@ class VQModel(pl.LightningModule):
 
 
 def get_vq_model(vq_ckpt_dir='.'):
-    config = OmegaConf.load(os.path.join(vq_ckpt_dir, 'model.yaml'))
+    config = OmegaConf.load(os.path.join(vq_ckpt_dir, 'Data/weights/vqgan/model.yaml'))
     model = VQModel(**config.model.params)
-    sd = torch.load(os.path.join(vq_ckpt_dir, "last.ckpt"), map_location="cpu")["state_dict"]
+    sd = torch.load(os.path.join(vq_ckpt_dir, "Data/weights/vqgan/last.ckpt"), map_location="cpu")["state_dict"]
     missing, _ = model.load_state_dict(sd, strict=False)
     print("Missing VQGAN keys:", missing)
     return model.eval()
