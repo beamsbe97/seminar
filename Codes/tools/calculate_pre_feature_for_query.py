@@ -55,6 +55,7 @@ img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
 ann_path = os.path.join(datapath, 'VOC2012/SegmentationClass/')
 
 features_dir = f"./pascal-5i/VOC2012/{features_name}_{split}"
+os.makedirs(features_dir, exist_ok=True)
 meta_root = f"Data/splits/pascal/{split}"
 
 transform = T.Compose([T.Resize((224, 224), 3),T.ToTensor()])
