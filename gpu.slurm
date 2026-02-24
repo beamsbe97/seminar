@@ -30,10 +30,18 @@ conda activate condenser
 export CWD=$(pwd)
 echo "[$SHELL] CWD: "$CWD
 
-echo "running calculate_pre_feature_for_query.py"
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_query
-echo "FINISHED calculate_pre_feature_for_query.py"
+echo "running calculate_pre_feature_for_query.py trn"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_query features_vit-laion2b_pixel-level trn
+echo "FINISHED calculate_pre_feature_for_query.py trn"
 
-echo "running calculate_pre_feature_for_support.py"
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_support
-echo "FINISHED calculate_pre_feature_for_support.py"
+echo "running calculate_pre_feature_for_query.py val"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_query features_vit-laion2b_pixel-level val
+echo "FINISHED calculate_pre_feature_for_query.py val"
+
+echo "running calculate_pre_feature_for_support.py trn"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_support features_vit-laion2b_pixel-level trn
+echo "FINISHED calculate_pre_feature_for_support.py trn"
+
+echo "running calculate_pre_feature_for_support.py val"
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.tools.calculate_pre_feature_for_support features_vit-laion2b_pixel-level trn
+echo "FINISHED calculate_pre_feature_for_support.py val"
