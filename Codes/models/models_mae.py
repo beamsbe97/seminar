@@ -16,12 +16,12 @@ import torch.nn as nn
 import sys
 from timm.models.vision_transformer import PatchEmbed, Block
 cwd = os.path.dirname(os.path.abspath(__file__))
-# print(cwd)
-sys.path.append(cwd)
-from util.pos_embed import get_2d_sincos_pos_embed
+print(cwd)
+#sys.path.append(cwd)
+from Codes.util.pos_embed import get_2d_sincos_pos_embed
 
 # print(sys.path)
-from vqgan import get_vq_model
+from Codes.models.vqgan import get_vq_model
 
 
 class MaskedAutoencoderViT(nn.Module):
