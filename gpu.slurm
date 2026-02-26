@@ -44,7 +44,7 @@ echo "running calculate_pre_feature_for_support.py val"
  --vp-model Prompt \
  --p-eps 1 \
  --ckpt Data/weights/checkpoint-1000.pth \
- --vq_ckpt_dir Data/weights/vqgan \
+ --vq_ckpt_dir . \
  --save_base_dir Data/ \
  --simidx 16 \
  --dropout 0.25 \
