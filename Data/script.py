@@ -24,7 +24,7 @@ for i in range(0,4):
 
         # Check if filename exists anywhere in folder tree
         if filename in existing_pngs:
-            valid_files.append(filename)
+            valid_files.append(line)
 
     # 3️⃣ Overwrite txt with cleaned entries
     txt_path.write_text("\n".join(valid_files) + "\n")
