@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from models.mae_utils import PURPLE, YELLOW
+from Codes.models.mae_utils import PURPLE, YELLOW
 import json
 import h5py
 
