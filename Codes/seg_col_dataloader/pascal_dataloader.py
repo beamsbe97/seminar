@@ -33,7 +33,7 @@ class DatasetPASCAL(Dataset):
         self.use_original_imgsize = use_original_imgsize
  
         self.img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
-        self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
+        self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClass/')
         self.image_transform = image_transform
         self.reverse_support_and_query = reverse_support_and_query
         self.mask_transform = mask_transform

@@ -45,7 +45,7 @@ class DatasetPASCAL(Dataset):
         self.selected_label = selected_label
         self.retri_choice = retri_choice
         self.img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
-        self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
+        self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClass/')
 
         self.image_transform = image_transform
         self.reverse_support_and_query = reverse_support_and_query

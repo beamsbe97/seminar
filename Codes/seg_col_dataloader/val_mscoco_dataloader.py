@@ -47,7 +47,7 @@ class DatasetMSCOCO(Dataset):
         self.selected_label = selected_label
 
         self.img_path = os.path.join(args.save_base_dir,'pascal-5i', 'VOC2012/JPEGImages/')
-        self.ann_path = os.path.join(args.save_base_dir,'pascal-5i', 'VOC2012/SegmentationClassAug/')
+        self.ann_path = os.path.join(args.save_base_dir,'pascal-5i', 'VOC2012/SegmentationClass/')
         self.coco_img_path = os.path.join(datapath, 'trn2014')
         self.coco_ann_path = os.path.join(datapath, 'Coco_Trainlabel')
         self.image_transform = image_transform
