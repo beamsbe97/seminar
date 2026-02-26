@@ -31,7 +31,7 @@ export CWD=$(pwd)
 echo "[$SHELL] CWD: "$CWD
 
 echo "running calculate_pre_feature_for_support.py val"
-/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m python Codes.train_vp_segmentation \
+/zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.train_vp_segmentation \
  --mode spimg_spmask \
  --output_dir Data/output/logs/ \
  --device cuda:0 \
