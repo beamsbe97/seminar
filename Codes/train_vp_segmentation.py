@@ -1,18 +1,18 @@
 import os.path
 from tqdm import tqdm
-from seg_col_dataloader import train_pascal_dataloader
-from seg_col_dataloader import val_pascal_dataloader
-from seg_col_dataloader import train_fewshot_pascal_dataloader
-from seg_col_dataloader.reasoning_dataloader import *
+from Codes.seg_col_dataloader import train_pascal_dataloader
+from Codes.seg_col_dataloader import val_pascal_dataloader
+from Codes.seg_col_dataloader import train_fewshot_pascal_dataloader
+from Codes.seg_col_dataloader.reasoning_dataloader import *
 import torchvision.transforms as T
-from models.mae_utils import *
+from Codes.models.mae_utils import *
 import argparse
 from pathlib import Path
-from models.segmentation_utils import *
+from Codes.models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
+from Codes.models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 from torch.cuda.amp import autocast, GradScaler
 import torchvision.transforms.functional as TF
 
