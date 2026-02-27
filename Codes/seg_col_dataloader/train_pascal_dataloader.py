@@ -227,9 +227,11 @@ class DatasetPASCAL(Dataset):
         support_masks = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
+        query_img = ''
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
-
+            query_img = self.read_img(query_name)
+            
             if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
                 or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
                 continue
