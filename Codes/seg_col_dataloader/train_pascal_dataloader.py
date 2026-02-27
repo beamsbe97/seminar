@@ -229,6 +229,10 @@ class DatasetPASCAL(Dataset):
         support_features = torch.tensor([]) 
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
+
+            if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
+                or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
+                continue
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
                                                                                                 support_name)
             name = query_name
