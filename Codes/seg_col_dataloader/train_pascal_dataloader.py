@@ -228,8 +228,7 @@ class DatasetPASCAL(Dataset):
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
         query_img = ''
-        if self.mask_transform:
-            query_mask = self.mask_transform(query_mask)
+        
 
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
@@ -242,6 +241,8 @@ class DatasetPASCAL(Dataset):
                 query_img = self.image_transform(query_img)
                 query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
                                                                     purple=self.purple)
+            if self.mask_transform:
+                query_mask = self.mask_transform(query_mask)
             
 
             if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
@@ -331,6 +332,8 @@ class DatasetPASCAL(Dataset):
 
     def read_img(self, img_name):
         r"""Return RGB image in PIL Image"""
+        if not os.path.isfile((os.path.join(self.img_path, img_name) + '.png')):
+            return "Image file not found :(("
         return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
 
     def sample_episode_for_training(self, idx, sim_idx):
