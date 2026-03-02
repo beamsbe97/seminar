@@ -212,6 +212,8 @@ def train(args):
             query_img_features = query_img_features.to(args.device, dtype=torch.float32)
             support_img = support_img.to(args.device, dtype=torch.float32)
             support_mask = support_mask.to(args.device, dtype=torch.float32)
+            if data['query_img']=='' or data['query_mask']=='':
+                print("Why is it still here", flush=True)
             query_img = query_img.to(args.device, dtype=torch.float32)
             query_mask = query_mask.to(args.device, dtype=torch.float32)
             grid_stack = grid_stack.to(args.device, dtype=torch.float32)
