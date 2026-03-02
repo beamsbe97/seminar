@@ -229,12 +229,12 @@ class DatasetPASCAL(Dataset):
         support_features = torch.tensor([]) 
         batch = {'query_img': '',
                  'query_mask': '',
-                 'support_imgs': '',
-                 'support_masks': '',
+                 'support_imgs': support_imgs,
+                 'support_masks': support_masks,
                  'grids': '',
                  'name': '',
-                 'query_img_features': '',
-                 'support_features': ''
+                 'query_img_features': query_img_features,
+                 'support_features': support_features
                  }
         
         for sim_idx in range(self.simidx):
