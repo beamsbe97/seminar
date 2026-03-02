@@ -56,6 +56,14 @@ class DatasetPASCAL(Dataset):
         self.img_metadata_val = self.build_img_metadata('val') if '_val' in feature_name else self.build_img_metadata(
             'trn')
         self.img_metadata_trn = self.build_img_metadata('trn')
+        filtered = []
+        for img_name, cls in self.img_metadata_trn:
+            mask_path = os.path.join(self.ann_path, img_name + '.png')
+            img_path = os.path.join(self.img_path, img_name + '.jpg')
+            if os.path.isfile(mask_path) and os.path.isfile(img_path):
+                filtered.append([img_name, cls])
+
+        self.img_metadata_trn = filtered
         self.all_img_metadata_trn = self.build_all_img_metadata('trn')
         # self.img_few_shot_metadata_trn = self.build_few_shot_metadata('trn', n_shot=16)
 
@@ -222,6 +230,7 @@ class DatasetPASCAL(Dataset):
 
     def __getitem__(self, idx):
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
+        valid_episode = False
         grids = torch.tensor([]) 
         support_imgs = torch.tensor([]) 
         support_masks = torch.tensor([]) 
@@ -254,8 +263,8 @@ class DatasetPASCAL(Dataset):
             support_img_path = os.path.join(self.img_path, support_name + '.jpg')
             support_mask_path = os.path.join(self.ann_path, support_name + '.png')
 
-            if not os.path.isfile(os.path.join(support_img_path + '.png')) \
-                or not os.path.isfile((support_mask_path + '.png')):
+            if not os.path.isfile(support_img_path) \
+                or not os.path.isfile(support_mask_path):
                 continue
 
             query_img = self.read_img(query_name)
@@ -302,6 +311,11 @@ class DatasetPASCAL(Dataset):
                 grids = grid.unsqueeze(0)
             else:
                 grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
+            valid_episode = True
+
+        if not valid_episode:
+            new_idx = random.randint(0, len(self.img_metadata_trn) - 1)
+            return self.__getitem__(new_idx)
 
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
