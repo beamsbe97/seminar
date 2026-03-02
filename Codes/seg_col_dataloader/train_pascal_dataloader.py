@@ -236,19 +236,28 @@ class DatasetPASCAL(Dataset):
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
-        
+        query_name, _, _, _ = self.sample_episode_for_training(idx, sim_idx=0)
+
+        # Define paths based on your directory structure
+        query_img_path = os.path.join(self.img_path, query_name + '.jpg')
+        query_mask_path = os.path.join(self.ann_path, query_name + '.png')
+
+        if not os.path.exists(query_img_path) or not os.path.exists(query_mask_path):
+            print(f"Warning: Query files for {query_name} missing. Skipping index {idx}.", flush=True)
+            new_idx = random.randint(0, len(self.img_metadata_trn) - 1)
+            return self.__getitem__(new_idx)
+    
+    
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
-            if not os.path.isfile((os.path.join(self.img_path, query_name) + '.png')) \
-                or not os.path.isfile((os.path.join(self.ann_path, query_name) + '.png')):
-                batch['name'] = f"{query_name} FILE NOT FOUND WHY???"
-                return batch
 
+            support_img_path = os.path.join(self.img_path, support_name + '.jpg')
+            support_mask_path = os.path.join(self.ann_path, support_name + '.png')
 
-            if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
-                or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
+            if not os.path.isfile(os.path.join(support_img_path + '.png')) \
+                or not os.path.isfile((support_mask_path + '.png')):
                 continue
-            print(f"Query name: {query_name}, Support name: {support_name}", flush=True)
+
             query_img = self.read_img(query_name)
 
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
@@ -260,8 +269,6 @@ class DatasetPASCAL(Dataset):
                                                                     purple=self.purple)
             if self.mask_transform:
                 query_mask = self.mask_transform(query_mask)
-            
-
             
             
             if self.image_transform:

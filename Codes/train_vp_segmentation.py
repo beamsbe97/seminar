@@ -200,9 +200,10 @@ def train(args):
         lr_list.append(optimizer.param_groups[0]["lr"])
         VP.train()
         for i, data in enumerate(tqdm(dataloaders['train'])):
-            len_dataloader = len(dataloaders['train'])
-            if data['query_img']=='' or data['query_mask']=='':
+            if data['support_features'].numel() == 0:
+                print(f"Skipping batch {i} because no valid support features were found.")
                 continue
+            len_dataloader = len(dataloaders['train'])
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']
