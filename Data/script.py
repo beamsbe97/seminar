@@ -1,34 +1,36 @@
+
+# ---- EDIT PATHS ----
+
 from pathlib import Path
-import re
 
-# Paths
-for i in range(0,4):
-    txt_path = Path(f"splits/pascal/trn/fold{i}.txt")   # your txt file
-    root_dir = Path("pascal-5i/VOC2012/SegmentationClass")       # CHANGE THIS
+# ---- EDIT THESE PATHS ----
 
-    # 1️⃣ Recursively collect all existing .png filenames
-    existing_pngs = {p.name for p in root_dir.rglob("*.png")}
+jpeg_dir = Path("pascal-5i/VOC2012/JPEGImages")
+txt_path = Path("splits/pascal/trn/fold2_copy.txt")
+mask_dir = Path("pascal-5i/VOC2012/SegmentationClass")
 
-    # 2️⃣ Read txt file
-    lines = txt_path.read_text().splitlines()
+# ---- Collect existing files once (FAST) ----
+existing_jpegs = {p.stem for p in jpeg_dir.glob("*.jpg")}
+existing_masks = {p.stem for p in mask_dir.glob("*.png")}
 
-    valid_files = []
+# ---- Read txt entries ----
+entries = [
+    line.strip()
+    for line in txt_path.read_text().splitlines()
+    if line.strip()
+]
 
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
+valid_entries = []
 
-        # Replace "__anything" with ".png"
-        filename = re.sub(r"__.*$", ".png", line)
+for entry in entries:
+    base_name = entry.split("__")[0]
 
-        # Check if filename exists anywhere in folder tree
-        if filename in existing_pngs:
-            valid_files.append(line)
+    if base_name in existing_jpegs and base_name in existing_masks:
+        valid_entries.append(entry)  # keep original format
 
-    # 3️⃣ Overwrite txt with cleaned entries
-    txt_path.write_text("\n".join(valid_files) + "\n")
+# ---- Overwrite txt file ----
+txt_path.write_text("\n".join(valid_entries) + "\n")
 
-    print(f"Original entries: {len(lines)}")
-    print(f"Valid files found: {len(valid_files)}")
-    print(f"Removed: {len(lines) - len(valid_files)}")
+print(f"Original entries: {len(entries)}")
+print(f"Valid entries: {len(valid_entries)}")
+print(f"Removed: {len(entries) - len(valid_entries)}")
