@@ -232,6 +232,7 @@ class DatasetPASCAL(Dataset):
 
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
+            print(f"Query name: {query_name}\n Support name: {support_name}")
             query_img = self.read_img(query_name)
 
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
