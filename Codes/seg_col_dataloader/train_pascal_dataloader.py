@@ -302,8 +302,7 @@ class DatasetPASCAL(Dataset):
                 grids = grid.unsqueeze(0)
             else:
                 grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
-        if isinstance(query_img, list) or isinstance(query_mask, list):
-            print("WHY IS IT A LIST????", flush=True)
+
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
                  'support_imgs': support_imgs,
