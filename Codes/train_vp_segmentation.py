@@ -201,6 +201,8 @@ def train(args):
         VP.train()
         for i, data in enumerate(tqdm(dataloaders['train'])):
             len_dataloader = len(dataloaders['train'])
+            if data['query_img']=='' or data['query_mask']=='':
+                continue
             support_img, support_mask, query_img, query_mask, grid_stack =\
                 data['support_imgs'], data['support_masks'], data['query_img'], data['query_mask'], data['grids']
             support_features = data['support_features']

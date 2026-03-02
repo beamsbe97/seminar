@@ -227,11 +227,26 @@ class DatasetPASCAL(Dataset):
         support_masks = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
-        query_img = ''
+        batch = {'query_img': '',
+                 'query_mask': '',
+                 'support_imgs': '',
+                 'support_masks': '',
+                 'grids': '',
+                 'name': '',
+                 'query_img_features': '',
+                 'support_features': ''
+                 }
         
-
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
+            if not os.path.isfile((os.path.join(self.img_path, query_name) + '.png')) \
+                or not os.path.isfile((os.path.join(self.ann_path, query_name) + '.png')):
+                return
+
+
+            if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
+                or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
+                continue
             print(f"Query name: {query_name}, Support name: {support_name}", flush=True)
             query_img = self.read_img(query_name)
 
@@ -246,9 +261,7 @@ class DatasetPASCAL(Dataset):
                 query_mask = self.mask_transform(query_mask)
             
 
-            if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
-                or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
-                continue
+            
             
             if self.image_transform:
                 support_img = self.image_transform(support_img)
