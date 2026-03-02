@@ -372,10 +372,12 @@ class DatasetPASCAL(Dataset):
         return mask
 
     def read_img(self, img_name):
-        r"""Return RGB image in PIL Image"""
-        if not os.path.isfile((os.path.join(self.img_path, img_name) + '.png')):
-            return "Image file not found :(("
-        return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
+        img_path = os.path.join(self.img_path, img_name + '.jpg')
+
+        if not os.path.isfile(img_path):
+            raise FileNotFoundError(f"Image not found: {img_path}")
+
+        return Image.open(img_path).convert("RGB")
 
     def sample_episode_for_training(self, idx, sim_idx):
         """Returns the index of the query, support and class."""
