@@ -227,7 +227,7 @@ class DatasetPASCAL(Dataset):
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
-        query_name, _, _, _ = self.sample_episode_for_training(idx, sim_idx=0)
+        query_name, _, _, _ = self.sample_episode(idx, sim_idx=0)
 
         # Define paths based on your directory structure
         query_img_path = os.path.join(self.img_path, query_name + '.jpg')
@@ -240,7 +240,7 @@ class DatasetPASCAL(Dataset):
     
     
         for sim_idx in range(self.simidx):
-            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
+            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
 
             support_img_path = os.path.join(self.img_path, support_name + '.jpg')
             support_mask_path = os.path.join(self.ann_path, support_name + '.png')
