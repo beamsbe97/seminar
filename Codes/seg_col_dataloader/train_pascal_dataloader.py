@@ -91,7 +91,12 @@ class DatasetPASCAL(Dataset):
             if img_name not in images_top50_new:
                 images_top50_new[img_name] = {}
 
-            images_top50_new[img_name]['top50'] = images_top50[img_name]
+            valid_supports = [
+                s for s in images_top50[img_name]
+                if s in dict(self.img_metadata_trn)
+            ]
+
+            images_top50_new[img_name]['top50'] = valid_supports
             images_top50_new[img_name]['class'] = img_class
 
         return images_top50_new
@@ -387,6 +392,11 @@ class DatasetPASCAL(Dataset):
                 support_class = self.images_top50_trn[support_name]['class']
         else:
             support_name = self.images_top50_for_training[query_name]['top50'][sim_idx]
+            support_classes = self.images_top50_trn[support_name]['class']
+            
+            if support_name not in self.images_top50_trn:
+                return self.sample_episode_for_training(idx + 1, 0)
+
             support_classes = self.images_top50_trn[support_name]['class']
             if class_sample in support_classes:
                 support_class = class_sample
