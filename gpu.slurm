@@ -36,7 +36,7 @@ echo "running calculate_pre_feature_for_support.py val"
  --output_dir Data/output/logs/ \
  --device cuda:0 \
  --base_dir Data/pascal-5i/ \
- --batch-size 16 \
+ --batch-size 8 \
  --lr 0.03 \
  --epoch 150 \
  --scheduler cosinewarm \
