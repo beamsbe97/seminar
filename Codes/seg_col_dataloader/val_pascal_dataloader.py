@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from Codes.models.mae_utils import PURPLE, YELLOW
 import json
 import h5py
+import random
 
 class DatasetPASCAL(Dataset):
     def __init__(self, datapath, args, fold, split, image_transform, mask_transform, padding: bool = 1,
@@ -42,6 +43,13 @@ class DatasetPASCAL(Dataset):
         self.class_ids = self.build_class_ids()
         self.img_metadata_val = self.build_img_metadata('val')
         self.all_img_metadata_trn = self.build_all_img_metadata('trn')
+        filtered = []
+        for img_name, cls in self.img_metadata_val:
+            mask_path = os.path.join(self.ann_path, img_name + '.png')
+            img_path = os.path.join(self.img_path, img_name + '.jpg')
+            if os.path.isfile(mask_path) and os.path.isfile(img_path):
+                filtered.append([img_name, cls])
+
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
@@ -65,21 +73,28 @@ class DatasetPASCAL(Dataset):
         for img_name, img_class in self.img_metadata_val:
             if img_name not in images_top50_new:
                 images_top50_new[img_name] = {}
-            images_top50_new[img_name]['top50'] = images_top50[img_name]
+
+            valid_supports = [
+                s for s in images_top50[img_name]
+                if s in dict(self.img_metadata_val)
+            ]
+
+            images_top50_new[img_name]['top50'] = valid_supports
             images_top50_new[img_name]['class'] = img_class
 
         return images_top50_new
-
+    
     def get_top50_images_trn(self):
         images_top50_new = {}
         for img_name, img_class in self.all_img_metadata_trn:
             if img_name not in images_top50_new:
-                images_top50_new[img_name] = {}
+                images_top50_new[img_name] = {'class': []}
 
-            images_top50_new[img_name]['class'] = img_class
+            # Check if img_class is not already in the list to avoid duplicates.
+            if img_class not in images_top50_new[img_name]['class']:
+                images_top50_new[img_name]['class'].append(img_class)
 
         return images_top50_new
-
     def create_gradiant_grid_images(self, support_img, support_mask, query_img, query_mask, arr):
         # create grid image for suppot images and query image.
         canvas = torch.ones((support_img.shape[0], 2 * support_img.shape[1] + 2 * self.padding,
@@ -194,21 +209,59 @@ class DatasetPASCAL(Dataset):
 
         return canvas_list
 
+
     def __getitem__(self, idx):
-        grid_stack = torch.tensor([]) 
+        # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
+        valid_episode = False
+        grids = torch.tensor([]) 
+        support_imgs = torch.tensor([]) 
+        support_masks = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
+        batch = {'query_img': '',
+                 'query_mask': '',
+                 'support_imgs': support_imgs,
+                 'support_masks': support_masks,
+                 'grids': '',
+                 'name': '',
+                 'query_img_features': query_img_features,
+                 'support_features': support_features
+                 }
+        query_name, _, _, _ = self.sample_episode_for_training(idx, sim_idx=0)
+
+        # Define paths based on your directory structure
+        query_img_path = os.path.join(self.img_path, query_name + '.jpg')
+        query_mask_path = os.path.join(self.ann_path, query_name + '.png')
+
+        if not os.path.exists(query_img_path) or not os.path.exists(query_mask_path):
+            print(f"Warning: Query files for {query_name} missing. Skipping index {idx}.", flush=True)
+            new_idx = random.randint(0, len(self.img_metadata_trn) - 1)
+            return self.__getitem__(new_idx)
+    
+    
         for sim_idx in range(self.simidx):
-            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
+            query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
+
+            support_img_path = os.path.join(self.img_path, support_name + '.jpg')
+            support_mask_path = os.path.join(self.ann_path, support_name + '.png')
+
+            if not os.path.isfile(support_img_path) \
+                or not os.path.isfile(support_mask_path):
+                continue
+
+            query_img = self.read_img(query_name)
+
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
                                                                                                 support_name)
+            name = query_name
             if self.image_transform:
                 query_img = self.image_transform(query_img)
                 query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
                                                                     purple=self.purple)
             if self.mask_transform:
                 query_mask = self.mask_transform(query_mask)
-
+            
+            
             if self.image_transform:
                 support_img = self.image_transform(support_img)
             support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
@@ -222,25 +275,41 @@ class DatasetPASCAL(Dataset):
 
             else:
                 grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-            query_img_feature, support_feature = self.load_feature(query_name,support_name)
-            grid_stack = grid
-            if query_img_features.numel() == 0:
-                query_img_features = torch.tensor(query_img_feature).unsqueeze(0)
+            query_img_features, support_feature = self.load_feature(query_name,support_name)
             if support_features.numel() == 0:
                 support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
-                support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
+                support_features = torch.cat((support_features, torch.tensor(support_feature).unsqueeze(0)), dim=0)
+            query_img_features = torch.tensor(query_img_features).unsqueeze(0)
+            if support_img.numel() == 0:
+                support_imgs = support_img.unsqueeze(0)
+            else:
+                support_imgs = torch.cat((support_imgs, support_img.unsqueeze(0)), dim=0)
+            if support_mask.numel() == 0:
+                support_masks = support_mask.unsqueeze(0)
+            else:
+                support_masks = torch.cat((support_masks, support_mask.unsqueeze(0)), dim=0)
+            if grid.numel() == 0:
+                grids = grid.unsqueeze(0)
+            else:
+                grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
+            valid_episode = True
+
+        if not valid_episode:
+            new_idx = random.randint(0, len(self.img_metadata_trn) - 1)
+            return self.__getitem__(new_idx)
+
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
-                 'support_img': support_img,
-                 'support_mask': support_mask,
-                 'grid_stack': grid_stack,
+                 'support_imgs': support_imgs,
+                 'support_masks': support_masks,
+                 'grids': grids,
+                 'name': name,
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
 
         return batch
-
     def extract_ignore_idx(self, mask, class_id, purple):
         mask = np.array(mask)
         boundary = np.floor(mask / 255.)
@@ -276,10 +345,14 @@ class DatasetPASCAL(Dataset):
         r"""Return segmentation mask in PIL Image"""
         mask = Image.open(os.path.join(self.ann_path, img_name) + '.png')
         return mask
-
+    
     def read_img(self, img_name):
-        r"""Return RGB image in PIL Image"""
-        return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
+        img_path = os.path.join(self.img_path, img_name + '.jpg')
+
+        if not os.path.isfile(img_path):
+            raise FileNotFoundError(f"Image not found: {img_path}")
+
+        return Image.open(img_path).convert("RGB")
 
     def sample_episode(self, idx, sim_idx):
         """Returns the index of the query, support and class."""
