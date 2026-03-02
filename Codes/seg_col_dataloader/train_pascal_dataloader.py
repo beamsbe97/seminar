@@ -228,13 +228,13 @@ class DatasetPASCAL(Dataset):
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
         query_img = ''
+        if self.mask_transform:
+            query_mask = self.mask_transform(query_mask)
+
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
             query_img = self.read_img(query_name)
-            
-            if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
-                or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
-                continue
+
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
                                                                                                 support_name)
             name = query_name
@@ -242,9 +242,12 @@ class DatasetPASCAL(Dataset):
                 query_img = self.image_transform(query_img)
                 query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
                                                                     purple=self.purple)
-            if self.mask_transform:
-                query_mask = self.mask_transform(query_mask)
+            
 
+            if not os.path.isfile((os.path.join(self.img_path, support_name) + '.png')) \
+                or not os.path.isfile((os.path.join(self.ann_path, support_name) + '.png')):
+                continue
+            
             if self.image_transform:
                 support_img = self.image_transform(support_img)
             support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
