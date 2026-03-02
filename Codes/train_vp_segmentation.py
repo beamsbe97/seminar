@@ -213,7 +213,7 @@ def train(args):
             support_img = support_img.to(args.device, dtype=torch.float32)
             support_mask = support_mask.to(args.device, dtype=torch.float32)
             if isinstance(query_img, list) or isinstance(query_mask, list):
-                print(query_img, flush=True)
+                print(f"name: {data['name']} \n query_img = {query_img}", flush=True)
             query_img = query_img.to(args.device, dtype=torch.float32)
             query_mask = query_mask.to(args.device, dtype=torch.float32)
             grid_stack = grid_stack.to(args.device, dtype=torch.float32)

@@ -241,6 +241,7 @@ class DatasetPASCAL(Dataset):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode_for_training(idx, sim_idx=sim_idx)
             if not os.path.isfile((os.path.join(self.img_path, query_name) + '.png')) \
                 or not os.path.isfile((os.path.join(self.ann_path, query_name) + '.png')):
+                batch['name'] = query_name
                 return batch
 
 
