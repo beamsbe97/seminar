@@ -130,7 +130,8 @@ def train(args):
                          flipped_order=args.flip, purple=args.purple, random=args.random, cluster=args.cluster,
                          feature_name=args.feature_name, percentage=args.percentage, seed=args.seed, mode=args.mode,
                          arr=args.arr,simidx=args.simidx)
-
+    
+    print('length of train dataset: ', len(train_dataset))
     print('number of val demonstation',args.simidx)
     print('length of val dataset: ', len(val_dataset))
 
@@ -140,8 +141,8 @@ def train(args):
     dataloaders['val'] = DataLoader(val_dataset, batch_size=args.batch_size//2, shuffle=False,num_workers=4)
     dataloaders['train'] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,num_workers=4)
 
-    print('train datalaoder: ', len(dataloaders['train']))
-    print('val datalaoder: ', len(dataloaders['val']))
+    print('train dataloader: ', len(dataloaders['train']))
+    print('val dataloader: ', len(dataloaders['val']))
 
     print("load data over")
     # MAE_VQGAN model

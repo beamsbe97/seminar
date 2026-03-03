@@ -50,6 +50,7 @@ class DatasetPASCAL(Dataset):
             if os.path.isfile(mask_path) and os.path.isfile(img_path):
                 filtered.append([img_name, cls])
         self.img_metadata_val = filtered
+        print(f"Length of val dataset : {len(filtered)}", flush=True)
         
         self.feature_name = feature_name
         self.seed = seed
