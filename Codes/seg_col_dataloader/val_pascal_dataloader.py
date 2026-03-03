@@ -373,7 +373,7 @@ class DatasetPASCAL(Dataset):
             if sim_idx >= len(top50_list):
                 # no valid supports → move to next query safely
                 new_idx = (idx + 1) % len(self.img_metadata_val)
-                return self.sample_episode_for_training(new_idx, 0)
+                return self.sample_episode(new_idx, 0)
 
             support_name = top50_list[sim_idx]
             support_class = self.images_top50_trn[support_name]['class']
