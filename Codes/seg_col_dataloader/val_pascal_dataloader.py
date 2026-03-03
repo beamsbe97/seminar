@@ -235,7 +235,7 @@ class DatasetPASCAL(Dataset):
 
         if not os.path.exists(query_img_path) or not os.path.exists(query_mask_path):
             print(f"Warning: Query files for {query_name} missing. Skipping index {idx}.", flush=True)
-            new_idx = random.randint(0, len(self.img_metadata_trn) - 1)
+            new_idx = random.randint(0, len(self.img_metadata_val) - 1)
             return self.__getitem__(new_idx)
     
     
@@ -296,7 +296,7 @@ class DatasetPASCAL(Dataset):
             valid_episode = True
 
         if not valid_episode:
-            new_idx = random.randint(0, len(self.img_metadata_trn) - 1)
+            new_idx = random.randint(0, len(self.img_metadata_val) - 1)
             return self.__getitem__(new_idx)
 
         batch = {'query_img': query_img,
@@ -372,7 +372,7 @@ class DatasetPASCAL(Dataset):
 
             if sim_idx >= len(top50_list):
                 # no valid supports → move to next query safely
-                new_idx = (idx + 1) % len(self.img_metadata_trn)
+                new_idx = (idx + 1) % len(self.img_metadata_val)
                 return self.sample_episode_for_training(new_idx, 0)
 
             support_name = top50_list[sim_idx]
