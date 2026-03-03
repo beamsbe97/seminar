@@ -49,7 +49,8 @@ class DatasetPASCAL(Dataset):
             img_path = os.path.join(self.img_path, img_name + '.jpg')
             if os.path.isfile(mask_path) and os.path.isfile(img_path):
                 filtered.append([img_name, cls])
-
+        self.img_metadata_val = filtered
+        
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
@@ -355,40 +356,26 @@ class DatasetPASCAL(Dataset):
         return Image.open(img_path).convert("RGB")
 
     def sample_episode(self, idx, sim_idx):
-        """Returns the index of the query, support and class."""
-        query_name, class_sample = self.img_metadata_val[idx]
+        max_trials = len(self.img_metadata_val)
 
-        if self.cls_base:
-            support_name = self.images_top50_val[query_name]['top50'][sim_idx]
-            support_class = self.images_top50_trn[support_name]['class']
-            while support_class != class_sample:
-                sim_idx += 1
-                if sim_idx >= len(self.images_top50_val[query_name]['top50']):
-                    break
-                support_name = self.images_top50_val[query_name]['top50'][sim_idx]
-                support_class = self.images_top50_trn[support_name]['class']
-        else:
+        for _ in range(max_trials):
+
+            query_name, class_sample = self.img_metadata_val[idx]
             top50_list = self.images_top50_val.get(query_name, {}).get('top50', [])
 
-            if sim_idx >= len(top50_list):
-                # no valid supports → move to next query safely
-                new_idx = (idx + 1) % len(self.img_metadata_val)
-                return self.sample_episode(new_idx, 0)
+            if sim_idx < len(top50_list):
+                support_name = top50_list[sim_idx]
 
-            support_name = top50_list[sim_idx]
-            support_class = self.images_top50_trn[support_name]['class']
+                if support_name != query_name:
+                    support_class = self.images_top50_trn[support_name]['class']
+                    return query_name, support_name, class_sample, support_class
 
-        if support_name == query_name:
-            print('support_name = query_name ' + support_name)
-            return self.sample_episode(idx, sim_idx + 1)
-
-        if sim_idx >= len(self.images_top50_val[query_name]['top50']):
-            print('query name: ', query_name)
+            # Move to next index safely
+            idx = (idx + 1) % len(self.img_metadata_val)
             sim_idx = 0
-            return self.sample_episode(idx + 1, sim_idx)
 
-        return query_name, support_name, class_sample, support_class
-
+        # If we reach here → dataset is broken
+        raise RuntimeError("No valid support-query pairs found in dataset.")
     def build_class_ids(self):
         nclass_trn = self.nclass // self.nfolds
         class_ids_val = [self.fold * nclass_trn + i for i in range(nclass_trn)]
