@@ -371,7 +371,7 @@ class DatasetPASCAL(Dataset):
 
             for support_name in top50_list:
                 if support_name != query_name and support_name in self.images_top50_trn:
-                    support_class = self.images_top50_trn[support_name]['class']
+                    support_class = self.images_top50_trn[support_name]['class'][0]
                     return query_name, support_name, class_sample, support_class
 
             idx = (idx + 1) % len(self.img_metadata_val)
