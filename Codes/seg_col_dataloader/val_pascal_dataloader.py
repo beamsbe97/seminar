@@ -84,10 +84,7 @@ class DatasetPASCAL(Dataset):
             if img_name not in images_top50_new:
                 images_top50_new[img_name] = {}
 
-            valid_supports = [
-                s for s in images_top50[img_name]
-                if s in dict(self.img_metadata_val)
-            ]
+            valid_supports = images_top50.get(img_name, [])
 
             images_top50_new[img_name]['top50'] = valid_supports
             images_top50_new[img_name]['class'] = img_class
