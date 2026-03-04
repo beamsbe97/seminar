@@ -217,58 +217,22 @@ class DatasetPASCAL(Dataset):
         return canvas_list
 
 
+
     def __getitem__(self, idx):
-        # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
-        valid_episode = False
-        grids = torch.tensor([]) 
-        support_imgs = torch.tensor([]) 
-        support_masks = torch.tensor([]) 
+        grid_stack = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
         support_features = torch.tensor([]) 
-        batch = {'query_img': '',
-                 'query_mask': '',
-                 'support_imgs': support_imgs,
-                 'support_masks': support_masks,
-                 'grids': '',
-                 'name': '',
-                 'query_img_features': query_img_features,
-                 'support_features': support_features
-                 }
-        query_name, _, _, _ = self.sample_episode(idx, sim_idx=0)
-
-        # Define paths based on your directory structure
-        query_img_path = os.path.join(self.img_path, query_name + '.jpg')
-        query_mask_path = os.path.join(self.ann_path, query_name + '.png')
-
-        if not os.path.exists(query_img_path) or not os.path.exists(query_mask_path):
-            print(f"Warning: Query files for {query_name} missing. Skipping index {idx}.", flush=True)
-            new_idx = random.randint(0, len(self.img_metadata_val) - 1)
-            return self.__getitem__(new_idx)
-    
-    
         for sim_idx in range(self.simidx):
             query_name, support_name, class_sample_query, class_sample_support = self.sample_episode(idx, sim_idx=sim_idx)
-
-            support_img_path = os.path.join(self.img_path, support_name + '.jpg')
-            support_mask_path = os.path.join(self.ann_path, support_name + '.png')
-
-            if not os.path.isfile(support_img_path) \
-                or not os.path.isfile(support_mask_path):
-                continue
-
-            query_img = self.read_img(query_name)
-
             query_img, query_cmask, support_img, support_cmask, org_qry_imsize = self.load_frame(query_name,
                                                                                                 support_name)
-            name = query_name
             if self.image_transform:
                 query_img = self.image_transform(query_img)
                 query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask, class_sample_query,
                                                                     purple=self.purple)
             if self.mask_transform:
                 query_mask = self.mask_transform(query_mask)
-            
-            
+
             if self.image_transform:
                 support_img = self.image_transform(support_img)
             support_mask, support_ignore_idx = self.extract_ignore_idx(support_cmask, class_sample_support,
@@ -282,36 +246,19 @@ class DatasetPASCAL(Dataset):
 
             else:
                 grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-            query_img_features, support_feature = self.load_feature(query_name,support_name)
+            query_img_feature, support_feature = self.load_feature(query_name,support_name)
+            grid_stack = grid
+            if query_img_features.numel() == 0:
+                query_img_features = torch.tensor(query_img_feature).unsqueeze(0)
             if support_features.numel() == 0:
                 support_features = torch.tensor(support_feature).unsqueeze(0)
             else:
-                support_features = torch.cat((support_features, torch.tensor(support_feature).unsqueeze(0)), dim=0)
-            query_img_features = torch.tensor(query_img_features).unsqueeze(0)
-            if support_img.numel() == 0:
-                support_imgs = support_img.unsqueeze(0)
-            else:
-                support_imgs = torch.cat((support_imgs, support_img.unsqueeze(0)), dim=0)
-            if support_mask.numel() == 0:
-                support_masks = support_mask.unsqueeze(0)
-            else:
-                support_masks = torch.cat((support_masks, support_mask.unsqueeze(0)), dim=0)
-            if grid.numel() == 0:
-                grids = grid.unsqueeze(0)
-            else:
-                grids = torch.cat((grids, grid.unsqueeze(0)), dim=0)
-            valid_episode = True
-
-        if not valid_episode:
-            new_idx = random.randint(0, len(self.img_metadata_val) - 1)
-            return self.__getitem__(new_idx)
-
+                support_features = torch.cat((support_features, support_feature.unsqueeze(0)), dim=0)
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
-                 'support_imgs': support_imgs,
-                 'support_masks': support_masks,
-                 'grids': grids,
-                 'name': name,
+                 'support_img': support_img,
+                 'support_mask': support_mask,
+                 'grid_stack': grid_stack,
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
