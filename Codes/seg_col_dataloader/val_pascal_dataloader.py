@@ -67,11 +67,6 @@ class DatasetPASCAL(Dataset):
             if key not in valid_names:
                 del self.images_top50_val[key]
 
-        for key in self.images_top50_val:
-            self.images_top50_val[key]['top50'] = [
-                s for s in self.images_top50_val[key]['top50']
-                if s in self.images_top50_trn
-            ]
         self.mode = mode
         self.arr = arr
         self.simidx = simidx
