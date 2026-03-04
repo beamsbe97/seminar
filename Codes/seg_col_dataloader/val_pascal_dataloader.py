@@ -367,9 +367,7 @@ class DatasetPASCAL(Dataset):
                     return query_name, support_name, class_sample, support_class
 
             idx = (idx + 1) % len(self.img_metadata_val)
-            print("Query:", query_name, flush=True)
-            print("Top50:", top50_list[:5], flush=True)
-            print("Train keys sample:", list(self.images_top50_trn.keys())[:5], flush=True)
+
         # If we reach here → dataset is broken
         raise RuntimeError("No valid support-query pairs found in dataset.")
 
