@@ -52,6 +52,15 @@ class DatasetPASCAL(Dataset):
         self.img_metadata_val = filtered
         valid_names = set([name for name, _ in self.img_metadata_val])
 
+        
+        print(f"Length of val dataset : {len(filtered)}", flush=True)
+        
+        self.feature_name = feature_name
+        self.seed = seed
+        self.percentage = percentage
+        self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
+        self.img_feature_for_val_path = os.path.join(datapath, f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
+        self.images_top50_val = self.get_top50_images_for_validation()
         for key in list(self.images_top50_val.keys()):
             if key not in valid_names:
                 del self.images_top50_val[key]
@@ -61,14 +70,6 @@ class DatasetPASCAL(Dataset):
                 s for s in self.images_top50_val[key]['top50']
                 if s in self.images_top50_trn
             ]
-        print(f"Length of val dataset : {len(filtered)}", flush=True)
-        
-        self.feature_name = feature_name
-        self.seed = seed
-        self.percentage = percentage
-        self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_features_by_vqgan_encoder.h5df')
-        self.img_feature_for_val_path = os.path.join(datapath, f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
-        self.images_top50_val = self.get_top50_images_for_validation()
         self.images_top50_trn = self.get_top50_images_trn()
         self.mode = mode
         self.arr = arr
