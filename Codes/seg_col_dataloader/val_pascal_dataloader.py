@@ -360,21 +360,16 @@ class DatasetPASCAL(Dataset):
         
         max_trials = len(self.img_metadata_val)
 
-        for _ in range(max_trials):
-
+        for trial in range(max_trials):
             query_name, class_sample = self.img_metadata_val[idx]
             top50_list = self.images_top50_val.get(query_name, {}).get('top50', [])
 
-            if sim_idx < len(top50_list):
-                support_name = top50_list[sim_idx]
-
+            for support_name in top50_list:
                 if support_name != query_name and support_name in self.images_top50_trn:
                     support_class = self.images_top50_trn[support_name]['class']
                     return query_name, support_name, class_sample, support_class
 
-            # Move to next index safely
             idx = (idx + 1) % len(self.img_metadata_val)
-            sim_idx = 0
 
         # If we reach here → dataset is broken
         raise RuntimeError("No valid support-query pairs found in dataset.")
