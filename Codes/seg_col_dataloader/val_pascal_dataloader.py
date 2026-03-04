@@ -220,7 +220,7 @@ class DatasetPASCAL(Dataset):
     def __getitem__(self, idx):
         # idx %= len(self.img_metadata_val)  # for testing, as n_images < 1000
         valid_episode = False
-        gridstack = torch.tensor([]) 
+        grid_stack = torch.tensor([]) 
         support_img = torch.tensor([]) 
         support_mask = torch.tensor([]) 
         query_img_features = torch.tensor([]) 
@@ -229,7 +229,7 @@ class DatasetPASCAL(Dataset):
                  'query_mask': '',
                  'support_img': support_img,
                  'support_mask': support_mask,
-                 'gridstack': gridstack,
+                 'grid_stack': grid_stack,
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
@@ -281,7 +281,7 @@ class DatasetPASCAL(Dataset):
 
             else:
                 grid = self.create_all_grids(support_img, support_mask, query_img, query_mask)
-            gridstack=grid
+            grid_stack=grid
 
             query_img_feature, support_feature = self.load_feature(query_name,support_name)
 
@@ -303,7 +303,7 @@ class DatasetPASCAL(Dataset):
                  'query_mask': query_mask,
                  'support_img': support_img,
                  'support_mask': support_mask,
-                 'gridstack': gridstack,
+                 'grid_stack': grid_stack,
                  'query_img_features': query_img_features,
                  'support_features': support_features
                  }
