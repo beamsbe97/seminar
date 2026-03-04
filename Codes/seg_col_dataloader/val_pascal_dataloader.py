@@ -357,6 +357,7 @@ class DatasetPASCAL(Dataset):
         return Image.open(img_path).convert("RGB")
 
     def sample_episode(self, idx, sim_idx):
+        
         max_trials = len(self.img_metadata_val)
 
         for _ in range(max_trials):
@@ -367,7 +368,7 @@ class DatasetPASCAL(Dataset):
             if sim_idx < len(top50_list):
                 support_name = top50_list[sim_idx]
 
-                if support_name != query_name:
+                if support_name != query_name and support_name in self.images_top50_trn:
                     support_class = self.images_top50_trn[support_name]['class']
                     return query_name, support_name, class_sample, support_class
 
