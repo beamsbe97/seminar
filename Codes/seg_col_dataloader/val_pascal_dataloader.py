@@ -50,6 +50,17 @@ class DatasetPASCAL(Dataset):
             if os.path.isfile(mask_path) and os.path.isfile(img_path):
                 filtered.append([img_name, cls])
         self.img_metadata_val = filtered
+        valid_names = set([name for name, _ in self.img_metadata_val])
+
+        for key in list(self.images_top50_val.keys()):
+            if key not in valid_names:
+                del self.images_top50_val[key]
+
+        for key in self.images_top50_val:
+            self.images_top50_val[key]['top50'] = [
+                s for s in self.images_top50_val[key]['top50']
+                if s in self.images_top50_trn
+            ]
         print(f"Length of val dataset : {len(filtered)}", flush=True)
         
         self.feature_name = feature_name
