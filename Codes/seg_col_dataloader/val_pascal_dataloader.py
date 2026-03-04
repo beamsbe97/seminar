@@ -62,7 +62,7 @@ class DatasetPASCAL(Dataset):
         self.img_feature_for_val_path = os.path.join(datapath, f'VOC2012/features_vit-laion2b_pixel-level_val/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
         self.images_top50_val = self.get_top50_images_for_validation()
         self.images_top50_trn = self.get_top50_images_trn()
-        
+
         for key in list(self.images_top50_val.keys()):
             if key not in valid_names:
                 del self.images_top50_val[key]
@@ -383,9 +383,12 @@ class DatasetPASCAL(Dataset):
                     return query_name, support_name, class_sample, support_class
 
             idx = (idx + 1) % len(self.img_metadata_val)
-
+            print("Query:", query_name)
+            print("Top50:", top50_list[:5])
+            print("Train keys sample:", list(self.images_top50_trn.keys())[:5])
         # If we reach here → dataset is broken
         raise RuntimeError("No valid support-query pairs found in dataset.")
+
     def build_class_ids(self):
         nclass_trn = self.nclass // self.nfolds
         class_ids_val = [self.fold * nclass_trn + i for i in range(nclass_trn)]
