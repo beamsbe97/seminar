@@ -6,8 +6,8 @@
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=48G
-#SBATCH --time=00:12:00
-#SBATCH --partition=gpu-short
+#SBATCH --time=7:30:00
+#SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 
