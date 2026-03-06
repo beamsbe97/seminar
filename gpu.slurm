@@ -6,7 +6,7 @@
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
-#SBATCH --time=5:00:00
+#SBATCH --time=7:00:00
 #SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:a100:1
@@ -36,7 +36,7 @@ echo "running calculate_pre_feature_for_support.py val"
  --output_dir Data/output/logs/ \
  --device cuda:0 \
  --base_dir Data/pascal-5i/ \
- --batch-size 12 \
+ --batch-size 16 \
  --lr 0.03 \
  --epoch 150 \
  --scheduler cosinewarm \
