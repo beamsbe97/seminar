@@ -36,9 +36,9 @@ echo "running calculate_pre_feature_for_support.py val"
  --fold 1\
  --mode spimg_spmask\
  --output_dir Data/output/logs/\ 
- --device cuda:0\ 
- --base_dir Data/pascal-5i/\ 
- --batch-size 8\
+ --device cuda:0 \
+ --base_dir Data/pascal-5i/ \
+ --batch-size 16 \
  --lr 0.03\
  --epoch 150\
  --arr a1\
