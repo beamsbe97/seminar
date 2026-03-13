@@ -1,17 +1,17 @@
 import os.path
 from tqdm import tqdm
-from seg_col_dataloader import val_pascal_dataloader
-from seg_col_dataloader.reasoning_dataloader import *
+from Codes.seg_col_dataloader import val_pascal_dataloader
+from Codes.seg_col_dataloader.reasoning_dataloader import *
 import torchvision
-from models.mae_utils import *
+from Codes.models.mae_utils import *
 import argparse
 from pathlib import Path
-from models.segmentation_utils import *
+from Codes.models.segmentation_utils import *
 from PIL import Image
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from models.train_models import _generate_result_for_canvas, PGVP
-from det_dataloader.voc_orig import CLASS_NAMES
+from Codes.models.train_models import _generate_result_for_canvas, PGVP
+from Codes.det_dataloader.voc_orig import CLASS_NAMES
 
 
 def get_args():
