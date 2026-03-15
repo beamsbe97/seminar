@@ -1,0 +1,17 @@
+Namespace(G_copy_another=False, G_only_div=False, G_pre_mean=False, align_q=0, align_s=1, arr='a1', aug=False, base_dir='Data/pascal-5i/', batch_size=16, choice='Zero', ckpt='Data/weights/checkpoint-1000.pth', cluster=False, dataset_type='pascal', device='cuda:0', dropout=0.25, ensemble=False, epoch=150, feature_name='features_vit-laion2b_pixel-level_trn', flip=0, fold=1, fsl=False, lamba=0.6, loss_choice='cos', loss_function='CrossEntropy', loss_mean=1, lr=0.03, mae_model='mae_vit_large_patch16', mode='spimg_spmask', n_shot=16, optimizer='Adam', output_dir='Data/output/logs/', p_eps=1, percentage='', pos='after', purple=0, random=False, save_base_dir='Data/', save_examples=False, save_model_path='Data/save_ours_ckpt/task_segmentation_Zero_align_q0/fold_3/simidx_16_model/_after_cos_0.6/_lr_0.03_task_segmentation/best.pth', scheduler='cosinewarm', seed=0, simidx=1, split='trn', t=[0, 0, 0], task='segmentation', vp_model='Prompt', vq_ckpt_dir='.')
+0	{'iou': 0.048028674, 'color_blind_iou': 0.048028674, 'accuracy': 0.8922165408651895}
+1	{'iou': 0.12737127, 'color_blind_iou': 0.12737127, 'accuracy': 0.8693287882477072}
+2	{'iou': 0.8021756, 'color_blind_iou': 0.8021756, 'accuracy': 0.9365311257203149}
+3	{'iou': 0.5167095, 'color_blind_iou': 0.5167095, 'accuracy': 0.7558639720801883}
+4	{'iou': 0.8419289, 'color_blind_iou': 0.8419289, 'accuracy': 0.9310932554175797}
+5	{'iou': 0.70903707, 'color_blind_iou': 0.70903707, 'accuracy': 0.8643778914049184}
+6	{'iou': 0.0, 'color_blind_iou': 0.0, 'accuracy': 0.8806103400697995}
+7	{'iou': 0.6166686, 'color_blind_iou': 0.6166686, 'accuracy': 0.731596461326191}
+8	{'iou': 0.07769704, 'color_blind_iou': 0.07769704, 'accuracy': 0.866082298514731}
+9	{'iou': 0.34966478, 'color_blind_iou': 0.34966478, 'accuracy': 0.5906176446716987}
+10	{'iou': 0.3021321, 'color_blind_iou': 0.3021321, 'accuracy': 0.45540134729323917}
+11	{'iou': 0.7803549, 'color_blind_iou': 0.7803549, 'accuracy': 0.8985471958444932}
+12	{'iou': 0.24915007, 'color_blind_iou': 0.24915007, 'accuracy': 0.8745231718204691}
+13	{'iou': 0.3021321, 'color_blind_iou': 0.3021321, 'accuracy': 0.45540134729323917}
+14	{'iou': 0.6096823, 'color_blind_iou': 0.6096823, 'accuracy': 0.8115412710007305}
+15	{'iou': 0.74305207, 'color_blind_iou': 0.74305207, 'accuracy': 0.7493709926142359}
