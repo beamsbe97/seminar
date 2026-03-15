@@ -35,7 +35,7 @@ echo "running calculate_pre_feature_for_support.py val"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.val_vp_segmentation \
  --fold 1\
  --mode spimg_spmask\
- --output_dir Data/output/logs/\ 
+ --output_dir Data/output/logs/\
  --device cuda:0 \
  --base_dir Data/pascal-5i/ \
  --batch-size 16 \
