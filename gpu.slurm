@@ -1,12 +1,12 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=train
+#SBATCH --job-name=train_fold2
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
-#SBATCH --time=5:00:00
+#SBATCH --time=8:00:00
 #SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:a100:1

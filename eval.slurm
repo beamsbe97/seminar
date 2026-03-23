@@ -1,12 +1,12 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=eval
+#SBATCH --job-name=eval_fold3
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
-#SBATCH --time=1:00:00
+#SBATCH --time=3:00:00
 #SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
