@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=eval_fold3
+#SBATCH --job-name=eval_fold3_sim16
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
@@ -47,7 +47,7 @@ echo "running calculate_pre_feature_for_support.py val"
  --ckpt Data/weights/checkpoint-1000.pth\
  --vq_ckpt_dir .\
  --save_base_dir Data/\
- --simidx 1\
+ --simidx 16\
  --dropout 0.25\
  --align_q 0 \
  --save_model_path Data/save_ours_ckpt/task_segmentation_Zero_align_q0/fold_3/simidx_16_model/_after_cos_0.6/_lr_0.03_task_segmentation/best.pth
