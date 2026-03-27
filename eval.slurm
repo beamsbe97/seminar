@@ -33,7 +33,7 @@ echo "[$SHELL] CWD: "$CWD
 echo "running calculate_pre_feature_for_support.py val"
 
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.val_vp_segmentation \
- --fold 1\
+ --fold 3\
  --mode spimg_spmask\
  --output_dir Data/output/logs/\
  --device cuda:0 \
