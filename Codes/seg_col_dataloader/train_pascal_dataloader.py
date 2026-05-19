@@ -65,12 +65,14 @@ class DatasetPASCAL(Dataset):
 
         self.img_metadata_trn = filtered
         self.all_img_metadata_trn = self.build_all_img_metadata('trn')
-        # self.img_few_shot_metadata_trn = self.build_few_shot_metadata('trn', n_shot=16)
+
+        self.class_to_imgs = {}
+        for img_name, cls in self.img_metadata_trn:
+            self.class_to_imgs.setdefault(cls, []).append(img_name)
 
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
-        # self.images_top50_val = self.get_top50_images_val()
         self.images_top50_trn = self.get_top50_images_trn()
         self.images_top50_for_training = self.get_top50_images_for_training()
         self.img_feature_for_train_path = os.path.join(datapath, f'VOC2012/{self.feature_name}/folder{self.fold}_query_features_by_vqgan_encoder.h5df')
@@ -382,6 +384,13 @@ class DatasetPASCAL(Dataset):
     def sample_episode_for_training(self, idx, sim_idx):
         """Returns the index of the query, support and class."""
         query_name, class_sample = self.img_metadata_trn[idx]
+
+        if self.random:
+            candidates = [n for n in self.class_to_imgs.get(class_sample, []) if n != query_name]
+            if not candidates:
+                return self.sample_episode_for_training((idx + 1) % len(self.img_metadata_trn), sim_idx)
+            support_name = random.choice(candidates)
+            return query_name, support_name, class_sample, class_sample
 
         if self.cls_base:
             support_name = self.images_top50_for_training[query_name]['top50'][sim_idx]

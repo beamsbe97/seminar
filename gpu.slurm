@@ -51,5 +51,6 @@ echo "running calculate_pre_feature_for_support.py val"
  --choice Zero \
  --loss_mean 1 \
  --align_q 0 \
- --fold 2
+ --fold 2 \
+ --random
 echo "FINISHED calculate_pre_feature_for_support.py val"

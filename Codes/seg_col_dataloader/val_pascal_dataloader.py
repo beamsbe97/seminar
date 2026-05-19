@@ -52,9 +52,12 @@ class DatasetPASCAL(Dataset):
         self.img_metadata_val = filtered
         valid_names = set([name for name, _ in self.img_metadata_val])
 
-        
+        self.class_to_imgs = {}
+        for img_name, cls in self.all_img_metadata_trn:
+            self.class_to_imgs.setdefault(cls, []).append(img_name)
+
         print(f"Length of val dataset : {len(filtered)}", flush=True)
-        
+
         self.feature_name = feature_name
         self.seed = seed
         self.percentage = percentage
@@ -355,6 +358,16 @@ class DatasetPASCAL(Dataset):
 
     def sample_episode(self, idx, sim_idx):
         
+        query_name, class_sample = self.img_metadata_val[idx]
+
+        if self.random:
+            candidates = [n for n in self.class_to_imgs.get(class_sample, []) if n != query_name]
+            if not candidates:
+                new_idx = (idx + 1) % len(self.img_metadata_val)
+                return self.sample_episode(new_idx, sim_idx)
+            support_name = random.choice(candidates)
+            return query_name, support_name, class_sample, class_sample
+
         max_trials = len(self.img_metadata_val)
 
         for trial in range(max_trials):

@@ -128,7 +128,8 @@ def test_for_generate_results(args):
         VP.eval()
         VP.to(args.device)
 
-    setting = f'{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
+    prompt_mode = 'random' if args.random else 'sim'
+    setting = f'{prompt_mode}_{args.mode}_fold{args.fold}_{args.task}_{args.arr}_{args.simidx}'
     eg_save_path = f'Rebuttal/{args.output_dir}/{args.vp_model}_output_examples/{args.mode}'
     os.makedirs(eg_save_path, exist_ok=True)
 

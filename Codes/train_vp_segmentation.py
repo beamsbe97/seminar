@@ -90,11 +90,12 @@ def get_args():
 
 def train(args):
 
+    prompt_mode = 'random' if args.random else 'sim'
     setting = f'_lr_{args.lr}_task_{args.task}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
     key_hype = f'_{args.pos}_{args.loss_choice}_{args.lamba}'
-    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/simidx_{args.simidx}_model/{key_hype}/{setting}'
-    eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/simidx_{args.simidx}/{key_hype}/{setting}'
+    model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/{prompt_mode}/simidx_{args.simidx}_model/{key_hype}/{setting}'
+    eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/{prompt_mode}/simidx_{args.simidx}/{key_hype}/{setting}'
 
 
     padding = 1
