@@ -85,6 +85,8 @@ def get_args():
                         help="choose prompt composer")
     parser.add_argument("--pos", type=str, default='after',
                         help="choose prompt composer")
+    parser.add_argument('--diversity_lambda', type=float, default=0.0,
+                        help='diversity regularization coefficient (0=disabled). Penalizes pairwise similarity among candidate prompt features.')
     return parser
 
 
@@ -93,7 +95,7 @@ def train(args):
     prompt_mode = 'random' if args.random else 'sim'
     setting = f'_lr_{args.lr}_task_{args.task}'
     task = f'task_{args.task}_{args.choice}_align_q{args.align_q}'
-    key_hype = f'_{args.pos}_{args.loss_choice}_{args.lamba}'
+    key_hype = f'_{args.pos}_{args.loss_choice}_{args.lamba}_div{args.diversity_lambda}'
     model_save_path = f'{args.save_base_dir}/save_ours_ckpt/{task}/fold_{args.fold}/{prompt_mode}/simidx_{args.simidx}_model/{key_hype}/{setting}'
     eg_save_path = f'{args.output_dir}/{task}/fold_{args.fold}/{prompt_mode}/simidx_{args.simidx}/{key_hype}/{setting}'
 

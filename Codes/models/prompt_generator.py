@@ -97,4 +97,11 @@ class PromptGeneratorlimzero(nn.Module):
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
         loss = loss * self.args.lamba
+        if self.args.diversity_lambda > 0:
+            support_norm = F.normalize(support_features_img, dim=-1)
+            cos_sim = torch.bmm(support_norm, support_norm.transpose(1, 2))
+            N_val = support_features_img.shape[1]
+            triu_mask = torch.triu(torch.ones(N_val, N_val, dtype=torch.bool, device=cos_sim.device), diagonal=1)
+            diversity_loss = cos_sim[:, triu_mask].mean()
+            loss = loss + self.args.diversity_lambda * diversity_loss
         return canvas_tokens,loss
