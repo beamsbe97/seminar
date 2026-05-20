@@ -51,6 +51,6 @@ echo "running calculate_pre_feature_for_support.py val"
  --choice Zero \
  --loss_mean 1 \
  --align_q 0 \
- --fold 1 \
+ --fold 2 \
  --diversity_lambda 0.1
 echo "train_vp_segmentation.py val"
