@@ -9,7 +9,7 @@
 #SBATCH --time=10:00:00
 #SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:a100:1
+#SBATCH --gres=gpu:1
 
 module purge
 
@@ -51,6 +51,6 @@ echo "running calculate_pre_feature_for_support.py val"
  --choice Zero \
  --loss_mean 1 \
  --align_q 0 \
- --fold 2 \
+ --fold 1 \
  --random
-echo "FINISHED calculate_pre_feature_for_support.py val"
+echo "train_vp_segmentation.py val"
