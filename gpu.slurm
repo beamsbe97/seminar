@@ -7,7 +7,7 @@
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
 #SBATCH --time=10:00:00
-#SBATCH --partition=gpu-a100-80g
+#SBATCH --partition=gpu-a100-40g
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 
@@ -33,7 +33,7 @@ echo "[$SHELL] CWD: "$CWD
 echo "running calculate_pre_feature_for_support.py val"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.train_vp_segmentation \
  --mode spimg_spmask \
- --output_dir Data/output/logs/optimised \
+ --output_dir Data/output/logs/40g \
  --device cuda:0 \
  --base_dir Data/pascal-5i/ \
  --batch-size 16 \
