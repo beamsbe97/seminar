@@ -6,10 +6,10 @@
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
-#SBATCH --time=16:00:00
+#SBATCH --time=18:00:00
 #SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:a100:1
 
 module purge
 
@@ -52,5 +52,6 @@ echo "running calculate_pre_feature_for_support.py val"
  --loss_mean 1 \
  --align_q 0 \
  --fold 2 \
- --diversity_lambda 0.09\
+ --diversity_lambda 0.1\
+ --conf_lambda 0.0
 echo "train_vp_segmentation.py val"
