@@ -71,10 +71,11 @@ class PromptGeneratorlimzero(nn.Module):
         support_features_mask = support_features_mask.permute(0,2,1,3).reshape(batchsize*49,N,1024)
         attn_out1,attn_weight = self.CrossAttention_S(query_features_img,support_features_img,support_features_img)         #[B*49,1,1024]
         conf_penalty = 0.0
+        if self.args.conf_lambda > 0 or self.args.diversity_lambda > 0:
+            support_norm_shared = F.normalize(support_features_img, dim=-1)
         if self.args.conf_lambda > 0:
             query_norm = F.normalize(query_features_img, dim=-1)
-            support_norm = F.normalize(support_features_img, dim=-1)
-            per_prompt_sim = torch.bmm(query_norm, support_norm.transpose(1, 2))
+            per_prompt_sim = torch.bmm(query_norm, support_norm_shared.transpose(1, 2))
             conf_penalty = (attn_weight * (1 - per_prompt_sim.detach())).sum(dim=(1,2)).mean()
         attn_out2 = (attn_weight @ (self.Linear(support_features_mask)))          #[B*49,1,1024]
         if self.args.G_copy_another:
@@ -104,8 +105,7 @@ class PromptGeneratorlimzero(nn.Module):
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
         loss = loss * self.args.lamba
         if self.args.diversity_lambda > 0:
-            support_norm = F.normalize(support_features_img, dim=-1)
-            cos_sim = torch.bmm(support_norm, support_norm.transpose(1, 2))
+            cos_sim = torch.bmm(support_norm_shared, support_norm_shared.transpose(1, 2))
             N_val = support_features_img.shape[1]
             triu_mask = torch.triu(torch.ones(N_val, N_val, dtype=torch.bool, device=cos_sim.device), diagonal=1)
             diversity_loss = cos_sim[:, triu_mask].mean()

@@ -6,10 +6,10 @@
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
-#SBATCH --time=18:00:00
+#SBATCH --time=10:00:00
 #SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:a100:1
+#SBATCH --gres=gpu:1
 
 module purge
 
@@ -33,7 +33,7 @@ echo "[$SHELL] CWD: "$CWD
 echo "running calculate_pre_feature_for_support.py val"
 /zfsstore/user/s4561341/.conda/envs/condenser/bin/python -m Codes.train_vp_segmentation \
  --mode spimg_spmask \
- --output_dir Data/output/logs/ \
+ --output_dir Data/output/logs/optimised \
  --device cuda:0 \
  --base_dir Data/pascal-5i/ \
  --batch-size 16 \
@@ -52,6 +52,5 @@ echo "running calculate_pre_feature_for_support.py val"
  --loss_mean 1 \
  --align_q 0 \
  --fold 2 \
- --diversity_lambda 0.1\
- --conf_lambda 0.0
+ --diversity_lambda 0.1
 echo "train_vp_segmentation.py val"
