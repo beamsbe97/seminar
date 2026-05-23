@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=train_fold2
+#SBATCH --job-name=train_diversity0.07
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
@@ -52,5 +52,5 @@ echo "running calculate_pre_feature_for_support.py val"
  --loss_mean 1 \
  --align_q 0 \
  --fold 2 \
- --diversity_lambda 0.1
+ --diversity_lambda 0.07
 echo "train_vp_segmentation.py val"
