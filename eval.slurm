@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=eval_diversity_
+#SBATCH --job-name=eval_conf_0.1
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
@@ -50,5 +50,5 @@ echo "running calculate_pre_feature_for_support.py val"
  --simidx 16\
  --dropout 0.25\
  --align_q 0 \
- --save_model_path Data/save_ours_ckpt/task_segmentation_Zero_align_q0/fold_2/sim/simidx_16_model/_after_cos_0.6_div0.1_conf0.0/best.pth
+ --save_model_path Data/save_ours_ckpt/task_segmentation_Zero_align_q0/fold_2/sim/simidx_16_model/_after_cos_0.6_div0.0_conf0.1/_lr_0.03_task_segmentation/best.pth
  
