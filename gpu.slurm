@@ -7,7 +7,7 @@
 #SBATCH --mail-type="ALL"
 #SBATCH --mem=70G
 #SBATCH --time=12:00:00
-#SBATCH --partition=gpu-mig-40g
+#SBATCH --partition=gpu-a100-80g
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:a100:1
 
