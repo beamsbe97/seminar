@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-#SBATCH --job-name=train_diversity0.05
+#SBATCH --job-name=train_diversity0.01
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 #SBATCH --mail-user="s4561341@vuw.leidenuniv.nl"
@@ -9,7 +9,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --partition=gpu-mig-40g
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:4g.40gb:1
+#SBATCH --gres=gpu:a100:1
 
 module purge
 
