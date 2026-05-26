@@ -50,5 +50,5 @@ echo "running calculate_pre_feature_for_support.py val"
  --simidx 16\
  --dropout 0.25\
  --align_q 0 \
- --save_model_path Data/save_ours_ckpt/task_segmentation_Zero_align_q0/fold_2/sim/simidx_16_model/_after_cos_0.6_div0.01_conf0.0/_lr_0.03_task_segmentation/best.pth
+ --save_model_path Data/save_ours_ckpt/task_segmentation_Zero_align_q0/fold_2/sim/simidx_16_model/_after_cos_0.6_div0.05_conf0.0/_lr_0.03_task_segmentation/best.pth
  
