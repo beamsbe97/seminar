@@ -114,8 +114,10 @@ class PromptGeneratorlimzero(nn.Module):
         # raw pre-alignment term (before lamba weighting) captured for telemetry
         l_pa_raw = loss if torch.is_tensor(loss) else torch.zeros((), device=support_features_img.device)
         loss = loss * self.args.lamba
-        if self.args.diversity_lambda > 0:
-            loss = loss + self.args.diversity_lambda * diversity_loss
+        # diversity is applied UPSTREAM (train_models.py), normalized by the task
+        # loss magnitude so diversity_lambda reads as "share of L_TP". We expose
+        # the raw (un-detached) tensor here because L_TP is not known yet.
+        self.diversity_loss_raw = diversity_loss
         if self.args.conf_lambda > 0:
             loss = loss + self.args.conf_lambda * conf_penalty
         # expose RAW (unweighted) component values so the training loop can log them.

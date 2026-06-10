@@ -85,7 +85,10 @@ class TelemetryLogger:
                 [epoch, step, self.global_step, lr]
                 + [lt[k] for k in _LOSS_KEYS]
                 + [self.lamba, self.div, self.conf,
-                   self.lamba * lt['l_pa'], self.div * lt['l_div'], self.conf * lt['l_conf']])
+                   # w_l_div mirrors the normalized scheme in train_models.py:
+                   # weighted contribution = mu * l_tp * l_div (l_tp-scaled).
+                   self.lamba * lt['l_pa'], self.div * lt['l_tp'] * lt['l_div'],
+                   self.conf * lt['l_conf']])
         for k in _LOSS_KEYS:
             v = lt[k]
             if v == v:  # skip NaN

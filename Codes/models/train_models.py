@@ -202,6 +202,14 @@ class PGVP(nn.Module):
         loss_ce /= N
         l_tp = loss_ce.detach() if torch.is_tensor(loss_ce) else torch.tensor(float(loss_ce))
         loss_ce = loss_ce + reg_loss
+        # normalized diversity penalty: the weight scales with the task-loss
+        # magnitude (l_tp is detached), so diversity_lambda = mu is directly
+        # interpretable as "diversity's share of L_TP" (mu=1.0 -> comparable to
+        # L_TP; mu=0 -> off). Replaces the old fixed-weight mu*L_div, which at
+        # mu<=0.1 contributed <1% of the loss and was numerically inert.
+        div_raw = getattr(self.PromptGenerator, 'diversity_loss_raw', None)
+        if self.args.diversity_lambda > 0 and div_raw is not None:
+            loss_ce = loss_ce + self.args.diversity_lambda * l_tp * div_raw
         # telemetry: expose the individual loss components for logging upstream.
         # l_tp = task/reconstruction term; the rest come from the prompt generator.
         pg = getattr(self.PromptGenerator, 'loss_terms', {})
