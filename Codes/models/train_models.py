@@ -200,5 +200,17 @@ class PGVP(nn.Module):
         for sub_label in canvas_label:
             loss_ce += self.vqgan.forward_loss(sub_label, y_pred, mask)
         loss_ce /= N
+        l_tp = loss_ce.detach() if torch.is_tensor(loss_ce) else torch.tensor(float(loss_ce))
         loss_ce = loss_ce + reg_loss
+        # telemetry: expose the individual loss components for logging upstream.
+        # l_tp = task/reconstruction term; the rest come from the prompt generator.
+        pg = getattr(self.PromptGenerator, 'loss_terms', {})
+        self.loss_terms = {
+            'l_tp': l_tp,
+            'l_pa': pg.get('l_pa'),
+            'l_div': pg.get('l_div'),
+            'l_conf': pg.get('l_conf'),
+            'reg': reg_loss.detach() if torch.is_tensor(reg_loss) else torch.tensor(float(reg_loss)),
+            'l_total': loss_ce.detach(),
+        }
         return loss_ce, canvas_pred_tokens, canvas_return_label

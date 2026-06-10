@@ -1,4 +1,6 @@
 import os.path
+import csv
+import json
 from tqdm import tqdm
 from Codes.seg_col_dataloader import val_pascal_dataloader
 from Codes.seg_col_dataloader.reasoning_dataloader import *
@@ -143,6 +145,12 @@ def test_for_generate_results(args):
     with open(os.path.join(examples_save_path, 'log.txt'), 'w') as log:
         log.write(str(args) + '\n')
 
+    # machine-readable copies of the eval results (so report tables/plots need no re-run)
+    with open(os.path.join(examples_save_path, 'config.json'), 'w') as f:
+        json.dump(vars(args), f, indent=2, default=str)
+    metric_keys = sorted(eval_dict.keys())
+    per_image_rows = []
+
     image_number = 0
 
     # Inference phase
@@ -176,6 +184,7 @@ def test_for_generate_results(args):
             current_metric = calculate_metric(args, original_image, generated_result, fg_color=WHITE, bg_color=BLACK)
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                 log.write(str(image_number) + '\t' + str(current_metric) + '\n')
+            per_image_rows.append([image_number] + [current_metric.get(k) for k in metric_keys])
             image_number += 1
 
             for i, j in current_metric.items():
@@ -184,6 +193,16 @@ def test_for_generate_results(args):
     print('val metric: {}'.format(eval_dict))
     with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
         log.write('all\t' + str(eval_dict) + '\n')
+
+    # dump per-image metrics + aggregate summary in machine-readable form
+    with open(os.path.join(examples_save_path, 'results.csv'), 'w', newline='') as f:
+        w = csv.writer(f)
+        w.writerow(['image_number'] + metric_keys)
+        w.writerows(per_image_rows)
+    with open(os.path.join(examples_save_path, 'results_summary.json'), 'w') as f:
+        json.dump({'eval_dict': eval_dict, 'n_images': image_number,
+                   'save_model_path': args.save_model_path, 'config': vars(args)},
+                  f, indent=2, default=str)
 
 
 if __name__ == '__main__':

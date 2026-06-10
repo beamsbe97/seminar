@@ -1,5 +1,9 @@
 import os.path
 from tqdm import tqdm
+try:
+    from Codes.util.telemetry import TelemetryLogger
+except ModuleNotFoundError:
+    from util.telemetry import TelemetryLogger
 from Codes.seg_col_dataloader import train_pascal_dataloader
 from Codes.seg_col_dataloader import val_pascal_dataloader
 from Codes.seg_col_dataloader import train_fewshot_pascal_dataloader
@@ -185,6 +189,11 @@ def train(args):
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
 
+    # Telemetry: persist per-step / per-epoch loss components + val metrics (see Codes/util/telemetry.py)
+    tlog = TelemetryLogger(eg_save_path, args,
+                           metric_keys=['iou', 'color_blind_iou', 'accuracy'],
+                           steps_per_epoch=len(dataloaders['train']),
+                           begin_epoch=begin_epoch)
 
     print(f'We use the mode of {args.mode}.')
     print(f'We adopt the arrangement of {args.arr}.')
@@ -238,6 +247,7 @@ def train(args):
             scaler.update()
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
+            tlog.log_step(epoch, i, optimizer.param_groups[0]['lr'], VP.loss_terms)
 
         scheduler.step()
 
@@ -316,7 +326,8 @@ def train(args):
         print('val iou list: ', val_iou_list)
         with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
             log.write('best\t' + str(best_iou) + '\n')
-        
+        tlog.log_epoch(epoch, lr_list[-1], eval_dict, best_iou)
+
 if __name__ == '__main__':
     if mp.get_start_method(allow_none=True) != 'spawn':
         mp.set_start_method('spawn')

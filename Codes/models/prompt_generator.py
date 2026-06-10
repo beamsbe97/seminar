@@ -70,13 +70,21 @@ class PromptGeneratorlimzero(nn.Module):
         support_features_img = support_features_img.permute(0,2,1,3).reshape(batchsize*49,N,1024)
         support_features_mask = support_features_mask.permute(0,2,1,3).reshape(batchsize*49,N,1024)
         attn_out1,attn_weight = self.CrossAttention_S(query_features_img,support_features_img,support_features_img)         #[B*49,1,1024]
-        conf_penalty = 0.0
-        if self.args.conf_lambda > 0 or self.args.diversity_lambda > 0:
-            support_norm_shared = F.normalize(support_features_img, dim=-1)
-        if self.args.conf_lambda > 0:
-            query_norm = F.normalize(query_features_img, dim=-1)
-            per_prompt_sim = torch.bmm(query_norm, support_norm_shared.transpose(1, 2))
-            conf_penalty = (attn_weight * (1 - per_prompt_sim.detach())).sum(dim=(1,2)).mean()
+        # --- regularizer metrics: computed EVERY step regardless of lambda, so the
+        #     baseline (lambda=0) run records the same telemetry for comparison ---
+        support_norm_shared = F.normalize(support_features_img, dim=-1)
+        # confidence penalty: attention mass placed on prompts with low query similarity
+        query_norm = F.normalize(query_features_img, dim=-1)
+        per_prompt_sim = torch.bmm(query_norm, support_norm_shared.transpose(1, 2))
+        conf_penalty = (attn_weight * (1 - per_prompt_sim.detach())).sum(dim=(1,2)).mean()
+        # diversity: mean pairwise cosine similarity among the N candidate prompts
+        N_val = support_features_img.shape[1]
+        if N_val > 1:
+            cos_sim = torch.bmm(support_norm_shared, support_norm_shared.transpose(1, 2))
+            triu_mask = torch.triu(torch.ones(N_val, N_val, dtype=torch.bool, device=cos_sim.device), diagonal=1)
+            diversity_loss = cos_sim[:, triu_mask].mean()
+        else:
+            diversity_loss = torch.zeros((), device=support_features_img.device)
         attn_out2 = (attn_weight @ (self.Linear(support_features_mask)))          #[B*49,1,1024]
         if self.args.G_copy_another:
             attn_out2,attn_weight = self.CrossAttention_SM(query_features_img,support_features_mask,support_features_mask)
@@ -103,13 +111,18 @@ class PromptGeneratorlimzero(nn.Module):
         support_tokens = torch.cat((attn_out1,attn_out2),dim=2)
         query_tokens = torch.cat((query_features_img,query_features_mask),dim=2)
         canvas_tokens = torch.cat((support_tokens,query_tokens),dim=1).reshape(batchsize,196,1024)
+        # raw pre-alignment term (before lamba weighting) captured for telemetry
+        l_pa_raw = loss if torch.is_tensor(loss) else torch.zeros((), device=support_features_img.device)
         loss = loss * self.args.lamba
         if self.args.diversity_lambda > 0:
-            cos_sim = torch.bmm(support_norm_shared, support_norm_shared.transpose(1, 2))
-            N_val = support_features_img.shape[1]
-            triu_mask = torch.triu(torch.ones(N_val, N_val, dtype=torch.bool, device=cos_sim.device), diagonal=1)
-            diversity_loss = cos_sim[:, triu_mask].mean()
             loss = loss + self.args.diversity_lambda * diversity_loss
         if self.args.conf_lambda > 0:
             loss = loss + self.args.conf_lambda * conf_penalty
+        # expose RAW (unweighted) component values so the training loop can log them.
+        # weighted contributions are recoverable as lamba*l_pa, diversity_lambda*l_div, conf_lambda*l_conf
+        self.loss_terms = {
+            'l_pa': l_pa_raw.detach(),
+            'l_div': diversity_loss.detach(),
+            'l_conf': conf_penalty.detach(),
+        }
         return canvas_tokens,loss

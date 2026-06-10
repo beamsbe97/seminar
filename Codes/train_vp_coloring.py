@@ -13,6 +13,10 @@ import torch.multiprocessing as mp
 from models.train_models import _generate_result_for_canvas, PGVP, Scheduler
 import torchvision.transforms.functional as TF
 from torch.cuda.amp import autocast, GradScaler
+try:
+    from Codes.util.telemetry import TelemetryLogger
+except ModuleNotFoundError:
+    from util.telemetry import TelemetryLogger
 
 def get_args():
     parser = argparse.ArgumentParser('InMeMo training for coloring', add_help=False)
@@ -171,6 +175,11 @@ def train(args):
 
     os.makedirs(model_save_path, exist_ok=True)
     os.makedirs(eg_save_path, exist_ok=True)
+    # Telemetry: persist per-step / per-epoch loss components + val metrics (see Codes/util/telemetry.py)
+    tlog = TelemetryLogger(eg_save_path, args,
+                           metric_keys=['mse'],
+                           steps_per_epoch=len(dataloaders['train']),
+                           begin_epoch=begin_epoch)
     print(f'We use the mode of {args.mode}.')
     print(f'We adopt the arrangement of {args.arr}.')
     if args.aug:
@@ -220,6 +229,7 @@ def train(args):
 
             epoch_loss += loss.detach()
             print("now sum loss and avgloss and loss",epoch_loss,epoch_loss/(i+1),loss)
+            tlog.log_step(epoch, i, optimizer.param_groups[0]['lr'], VP.loss_terms)
 
             original_image_list, generated_result_list = _generate_result_for_canvas(args, vqgan.to(args.device),
                                                                                      canvas_pred_tokens, canvas_label,
@@ -318,6 +328,7 @@ def train(args):
 
             with open(os.path.join(examples_save_path, 'log.txt'), 'a') as log:
                 log.write('best\t' + str(best_mse) + '\n')
+            tlog.log_epoch(epoch, lr_list[-1], eval_dict, best_mse)
 
 
 if __name__ == '__main__':
